@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>design_project</name>
+	<name>lab5_VGA_pt1</name>
 	<comment></comment>
 	<projects>
 		<project>ucos2nios2_bsp</project>
