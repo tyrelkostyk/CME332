@@ -1,13 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include "includes.h"
+#include <stdio.h>		// for printf & sprintf
+#include <stdlib.h>		// for rand, srand
+#include "includes.h"	// for uC/OS-II RTOS Library
 
 /* Definition of Global Vars and Mem-Mapped Pointers */
 
-#define	SW_ptr					(((volatile unsigned long *)0xFF200040))		// Mem Addr for SW0 - SW17
+#define	SW_ptr					(((volatile unsigned long *)0xFF200040))		// Mem Addr for SW17 - SW0
 #define KEY_ptr					(((volatile unsigned long *)0xFF200050))		// Mem Addr for KEY3-0 Pushbuttons
-#define BYTE_SIZE				8             // Byte size, in bits (for offsetting HEX display inputs)
-#define LCD_SIZE				40
 
 #define KEY0					0x01
 #define KEY1					0x02

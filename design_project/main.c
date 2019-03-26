@@ -4,37 +4,53 @@
 
 /* Definition of Global Vars and Mem-Mapped Pointers */
 
-#define	SW_ptr					(((volatile unsigned long *)0xFF200040))		// Mem Addr for SW0 - SW17
 #define KEY_ptr					(((volatile unsigned long *)0xFF200050))		// Mem Addr for KEY3-0 Pushbuttons
 #define BYTE_SIZE				8             // Byte size, in bits (for offsetting HEX display inputs)
 #define LCD_SIZE				40
 
-#define KEY0					0x01
-#define KEY1					0x02
-#define KEY2					0x04
-#define KEY3					0x08
+#define KEY0						0x01
+#define KEY1						0x02
+#define KEY2						0x04
+#define KEY3						0x08
+
+#define MAX_LOCATIONS 	85
+#define VGA_TEXT_MAX  	80
 
 int KEY_val, SW_val;
-int KEY0_flag, KEY1_flag, KEY2_flag;
+int KEY0_flag, KEY1_flag, KEY2_flag, KEY3_flag;
 
-int round_num, score, binary_answer;
+int step_count;
 
-int time_125ms;
+int time_250ms;
 int time_rem_SS = 30;
+int tot_time_rem_SS, tot_time_rem_MM;
 int tot_time_SS, tot_time_MM;
 
-const char lut_num [11] =   {              // gfe.dcba
-                                 0x3F,  // 0  011.1111
-                                 0x06,  // 1  000.0110
-                                 0x5B,  // 2  101.1011
-                                 0x4F,  // 3  100.1111
-                                 0x66,  // 4  110.0110
-                                 0x6D,  // 5  110.1101
-                                 0x7D,  // 6  111.1101
-                                 0x07,  // 7  000.0111
-                                 0x7F,  // 8  111.1111
-                                 0x6F,  // 9  110.1111
-                                 0x40   // -  100.0000 (error)
+
+/* Definitions of LUTs for unique properties of each labyrinth location */
+
+// lut for what buttons can be pressed (and do something) for each location
+const char LUT_permissions [MAX_LOCATIONS] = {
+  KEY0,                 // Loc 0: Press KEY0 to Start (East)
+  KEY0,                 // Loc 1: East
+  KEY0,                 // Loc 2: East
+  KEY0,                 // Loc 3: East
+  KEY0,                 // Loc 4: East
+  KEY0,                 // Loc 5: East
+  KEY0+KEY1,            // Loc 6: All directions
+
+
+};
+
+// lut for what message to display at each location
+const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX] = {
+  "You awake in a pitch black room of hard stone. Something growls in the distance",  // loc 0: Start Screen
+
+};
+
+// lut for the question to ask at each location
+const char LUT_location_question [MAX_LOCATIONS][VGA_TEXT_MAX] = {
+  "You find a candle & matchsticks. Will you light the canlde & begin your journey?"  // Loc 0: Start screen
 };
 
 
@@ -42,80 +58,92 @@ const char lut_num [11] =   {              // gfe.dcba
 
 OS_EVENT	*KeySem;
 OS_EVENT	*MBoxRemTime;
-OS_EVENT	*MBoxTotTime;
 INT8U 		err;
-
 
 /* Definition of Event Flags */
 
 OS_FLAG_GRP *GameStatus;
-
-#define GAME_ACTIVE 				0x01	// 0 = IDLE, 1 = ACTIVE
-#define GAME_PAUSED					0x02		// 0 = PLAY, 1 = PAUSED (within ACTIVE state)
-#define GAME_WAITING_FOR_ANSWER		0x04		// 0 = GENERATE QUESTION, 1 = WAIT FOR USER INPUT (within ACTIVE state)
-#define GAME_FINISHED				0x08	// 0 = GAME ONGOING (or IDLE), 1 = GAME COMPLETED
-#define GAME_RESET					0x10	// 0 = GAME ONGOING (or IDLE), 1 = GAME RESET
-
 OS_FLAGS value;
+
+#define GAME_ACTIVE 				0x01  // 0 = IDLE, 1 = ACTIVE
+#define GAME_NEW_LOCATION		0x02  // 0 = No new location to render, 1 = New location to render (within ACTIVE state)
+#define GAME_FINISHED				0x04  // 0 = GAME ONGOING (or IDLE), 1 = GAME COMPLETED
+#define GAME_RESET					0x08  // 0 = GAME ONGOING (or IDLE), 1 = GAME RESET
 
 
 /* Definition of Task Stacks */
 
 #define   TASK_STACKSIZE       2048
-OS_STK    TaskIdle_Stk[TASK_STACKSIZE];
-OS_STK    TaskScanKey_stk[TASK_STACKSIZE];
-OS_STK    TaskScanSW_stk[TASK_STACKSIZE];
+OS_STK    TaskStartScreen_Stk[TASK_STACKSIZE];
+OS_STK    TaskMakeChoice_stk[TASK_STACKSIZE];
 OS_STK    TaskStopwatch_stk[TASK_STACKSIZE];
+OS_STK    TaskDispOptions_stk[TASK_STACKSIZE];
 OS_STK    TaskDispRemTime_stk[TASK_STACKSIZE];
 OS_STK    TaskDispResults_stk[TASK_STACKSIZE];
-OS_STK    TaskGame_stk[TASK_STACKSIZE];
 
 
 /* Definition of Task Priorities */
 
-#define TASKSCANKEY_PRIORITY        5
-#define TASKSTOPWATCH_PRIORITY      6
-#define TASKSCANSW_PRIORITY         7
-#define TASKGAME_PRIORITY    		10
+#define TASKMAKECHOICE_PRIORITY			5
+#define TASKSTOPWATCH_PRIORITY			6
+#define TASKDISPOPTIONS_PRIORITY		10
 #define TASKDISPREMTIME_PRIORITY    11
 #define TASKDISPRESULTS_PRIORITY    12
-#define TASKIDLE_PRIORITY           13
+#define TASKSTARTSCREEN_PRIORITY		13
 
 
 /* Supporting Functions */
 
-//////* LCD DISPLAY FUNCTIONS *//////
-void LCD_clear(void)
-{
-  	volatile char * LCD_display_ptr = (char *) 0xFF203050;	// 16x2 character display
-	*(LCD_display_ptr) = 0x01;											// clear the LCD
+//////* VGA DISPLAY FUNCTIONS *//////
+
+void VGA_pixel(int x, int y, short pixel_color){
+	int offset;
+	volatile short * pixel_buffer = (short *) 0x08000000;	// VGA pixel buffer
+	offset = (y << 9) + x;
+	*(pixel_buffer + offset) = pixel_color;
 }
 
-void LCD_cursor(int x, int y)
-{
-  	volatile char * LCD_display_ptr = (char *) 0xFF203050;	// 16x2 character display
-	char instruction;
+void VGA_clear() {
+	// Set entire VGA screen to black
+	int x, y;
 
-	instruction = x;
-	if (y != 0) instruction |= 0x40;				// set bit 6 for bottom row
-	instruction |= 0x80;								// need to set bit 7 to set the cursor location
-	*(LCD_display_ptr) = instruction;			// write to the LCD instruction register
+	for (x = 0; x < 320; x++) {
+		for (y = 0; y < 240; y++) {
+			VGA_pixel(x, y, 0);
+		}
+	}
 }
 
-void LCD_cursor_off(void)
-{
-  	volatile char * LCD_display_ptr = (char *) 0xFF203050;	// 16x2 character display
-	*(LCD_display_ptr) = 0x0C;											// turn off the LCD cursor
-}
+void VGA_text(int x, int y, char * text_ptr) {
+	// Subroutine to send a string of text to the VGA monitor
 
-void LCD_text(char * text_ptr)
-{
-  volatile char * LCD_display_ptr = (char *) 0xFF203050;	// 16x2 character display
+	int offset;
+	volatile char *character_buffer = (char *) 0x09000000;   // VGA character buffer
 
-	while ( *(text_ptr) )
-	{
-		*(LCD_display_ptr + 1) = *(text_ptr);	// write to the LCD data register
+	/* assume that the text string fits on one line */
+	offset = (y << 7) + x;
+
+	while ( *(text_ptr) ) {
+		*(character_buffer + offset) = *(text_ptr);   // write to the character buffer
 		++text_ptr;
+		++offset;
+	}
+}
+
+void VGA_box(int x1, int y1, int x2, int y2, short pixel_color) {
+	// Draw a filled rectangle on the VGA monitor
+
+	int offset, row, col;
+	volatile short * pixel_buffer = (short *) 0x08000000;	// VGA pixel buffer
+
+	/* assume that the box coordinates are valid */
+	for (row = y1; row <= y2; row++) {
+		col = x1;
+		while (col <= x2) {
+			offset = (row << 9) + col;
+			*(pixel_buffer + offset) = pixel_color; // compute halfword address, set pixel
+			++col;
+		}
 	}
 }
 
@@ -144,13 +172,13 @@ void TaskIdle(void* pdata) {
 		LCD_clear();
 
 		// Reset Global Game Vars
-		round_num = 0;
-		score = 0;
-		binary_answer = 0;
-		time_125ms = 0;
+		step_count = 0;
+		time_250ms = 0;
+    time_rem_SS = 30;
+    tot_time_rem_SS = 0;
+    tot_time_rem_MM = 0;
 		tot_time_SS = 0;
 		tot_time_MM = 0;
-		time_rem_SS = 30;
 
 		// Print "Press KEY1 to start game..." on top row of LCD Display
 		LCD_cursor(0,1);
@@ -287,9 +315,9 @@ void TaskStopwatch(void* pdata) {
 		if ( (flags & GAME_ACTIVE) && (!(flags & GAME_PAUSED)) ) {
 			// Game is ACTIVE, and NOT PAUSED
 
-			time_125ms++;
-			if (time_125ms >= 8) {
-				time_125ms = 0;
+			time_250ms++;
+			if (time_250ms >= 4) {
+				time_250ms = 0;
 
 				// counter for total time
 				if (tot_time_SS >= 59) {
@@ -406,30 +434,6 @@ void TaskDispRemTime(void* pdata) {
 		}
 
 		OSTimeDly(4);
-
-	}
-}
-
-
-void TaskScanSW(void* pdata) {
-	// Can run in active & play & waiting_for_answer
-
-	OS_FLAGS flags;
-
-	while(1) {
-
-		// blocking delay until game is activated (to prevent useless processing in IDLE state)
-		value = OSFlagPend(GameStatus, GAME_ACTIVE, OS_FLAG_WAIT_SET_ALL, 0, &err);
-
-		flags = OSFlagQuery(GameStatus, &err);
-
-		if ( (flags & GAME_ACTIVE) && (!(flags & GAME_PAUSED)) && (flags & GAME_WAITING_FOR_ANSWER) ) {
-
-			binary_answer = *SW_ptr & 0xFF;
-
-		}
-
-		OSTimeDly(2);
 
 	}
 }
