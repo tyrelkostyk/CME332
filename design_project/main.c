@@ -114,14 +114,23 @@ void VGA_clear() {
 	}
 }
 
-void VGA_text(int x, int y, char * text_ptr) {
-	// Subroutine to send a string of text to the VGA monitor
-
-	int offset;
+void VGA_text_clear() {
+	// Subroutine to clear the text on the VGA monitor
+	int x, y, offset;
 	volatile char *character_buffer = (char *) 0x09000000;   // VGA character buffer
 
-	/* assume that the text string fits on one line */
-	offset = (y << 7) + x;
+	for (x = 0; x < 80; x++) {
+		for (y = 0; y < 60; y++) {
+			*(character_buffer + offset) = ' ';   // write to the character buffer
+			offset = (y << 7) + x;
+		}
+	}
+}
+
+void VGA_text(int x, int y, char * text_ptr) {
+	// Subroutine to send a string of text to the VGA monitor
+	int offset= (y << 7) + x;
+	volatile char *character_buffer = (char *) 0x09000000;   // VGA character buffer
 
 	while ( *(text_ptr) ) {
 		*(character_buffer + offset) = *(text_ptr);   // write to the character buffer
