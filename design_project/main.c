@@ -4,22 +4,30 @@
 
 /* Definition of Global Vars and Mem-Mapped Pointers */
 
-#define KEY_ptr					(((volatile unsigned long *)0xFF200050))		// Mem Addr for KEY3-0 Pushbuttons
-#define BYTE_SIZE				8             // Byte size, in bits (for offsetting HEX display inputs)
-#define LCD_SIZE				40
+#define KEY_ptr								(((volatile unsigned long *)0xFF200050))		// Mem Addr for KEY3-0 Pushbuttons
+#define BYTE_SIZE							8             // Byte size, in bits (for offsetting HEX display inputs)
+#define LCD_SIZE							40
 
-#define KEY0						0x01
-#define KEY1						0x02
-#define KEY2						0x04
-#define KEY3						0x08
+#define KEY0									0x01
+#define KEY1									0x02
+#define KEY2									0x04
+#define KEY3									0x08
 
-#define MAX_LOCATIONS 	85
-#define VGA_TEXT_MAX  	80
+#define MAX_LOCATIONS 				85
+#define VGA_TEXT_MAX_SIZE			120
+
+#define MSG_BASE_X						1
+#define MSG_BASE_Y						5
+
+#define QUESTION_BASE_X				1
+#define QUESTION_BASE_Y				20
+
+
 
 int KEY_val, SW_val;
 int KEY0_flag, KEY1_flag, KEY2_flag, KEY3_flag;
 
-int step_count;
+int location, step_count;
 
 int time_250ms;
 int time_rem_SS = 30;
@@ -30,7 +38,7 @@ int tot_time_SS, tot_time_MM;
 /* Definitions of LUTs for unique properties of each labyrinth location */
 
 // lut for what buttons can be pressed (and do something) for each location
-const char LUT_permissions [MAX_LOCATIONS] = {
+const char LUT_location_permissions [MAX_LOCATIONS] = {
   KEY0,                 // Loc 0: Press KEY0 to Start (East)
   KEY0,                 // Loc 1: East
   KEY0,                 // Loc 2: East
@@ -43,20 +51,39 @@ const char LUT_permissions [MAX_LOCATIONS] = {
 };
 
 // lut for what message to display at each location
-const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX] = {
-  "You awake in a pitch black room of hard stone. Something growls in the distance",  // loc 0: Start Screen
+const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
+  "You awake in a pitch black room of cold, hard stone. You hear an oddly         familiar growl in the distance...",  // loc 0: Start Screen
 
 };
 
 // lut for the question to ask at each location
-const char LUT_location_question [MAX_LOCATIONS][VGA_TEXT_MAX] = {
-  "You find a candle & matchsticks. Will you light the canlde & begin your journey?"  // Loc 0: Start screen
+const char LUT_location_question [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
+  "You fumble around in the dark and find a candle, and some matchsticks. Will    you light the canlde & begin your journey?"  // Loc 0: Start screen
 };
 
+// lut for the text associated with the North option (if applicable)
+const char LUT_loc_north_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
+	" ",			// Loc 0: Start screen (no north option)
+};
+
+// lut for the text associated with the East option (if applicable)
+const char LUT_loc_east_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
+	"KEY0: Start Journey...",			// Loc 0: Start screen
+};
+
+// lut for the text associated with the South option (if applicable)
+const char LUT_loc_south_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
+	" ",			// Loc 0: Start screen (no north option)
+};
+
+// lut for the text associated with the West option (if applicable)
+const char LUT_loc_west_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
+	" ",			// Loc 0: Start screen (no north option)
+};
 
 /* Definition of Semaphores & Mailboxes */
 
-OS_EVENT	*KeySem;
+OS_EVENT	*LocSem;
 OS_EVENT	*MBoxRemTime;
 INT8U 		err;
 
@@ -77,19 +104,19 @@ OS_FLAGS value;
 OS_STK    TaskStartScreen_Stk[TASK_STACKSIZE];
 OS_STK    TaskMakeChoice_stk[TASK_STACKSIZE];
 OS_STK    TaskStopwatch_stk[TASK_STACKSIZE];
-OS_STK    TaskDispOptions_stk[TASK_STACKSIZE];
+OS_STK    TaskDispNewLocation_stk[TASK_STACKSIZE];
 OS_STK    TaskDispRemTime_stk[TASK_STACKSIZE];
 OS_STK    TaskDispResults_stk[TASK_STACKSIZE];
 
 
 /* Definition of Task Priorities */
 
-#define TASKMAKECHOICE_PRIORITY			5
-#define TASKSTOPWATCH_PRIORITY			6
-#define TASKDISPOPTIONS_PRIORITY		10
-#define TASKDISPREMTIME_PRIORITY    11
-#define TASKDISPRESULTS_PRIORITY    12
-#define TASKSTARTSCREEN_PRIORITY		13
+#define TASKMAKECHOICE_PRIORITY				5
+#define TASKSTOPWATCH_PRIORITY				6
+#define TASKDISPNEWLOCATION_PRIORITY	10
+#define TASKDISPREMTIME_PRIORITY    	11
+#define TASKDISPRESULTS_PRIORITY    	12
+#define TASKSTARTSCREEN_PRIORITY			13
 
 
 /* Supporting Functions */
@@ -101,6 +128,22 @@ void VGA_pixel(int x, int y, short pixel_color){
 	volatile short * pixel_buffer = (short *) 0x08000000;	// VGA pixel buffer
 	offset = (y << 9) + x;
 	*(pixel_buffer + offset) = pixel_color;
+}
+
+void VGA_north_arrow() {
+	// draws a north (upwards) facing arrow
+	int x_base = 150;
+	int y_base = 120;
+	short pixel_color = 0xFFFF;		// white
+
+	// draw the center line
+	for (int x = x_base; x < (x_base+4); x++) {
+		for (int y = y_base; y < (y_base+20); y++) {
+			VGA_pixel(x, y, pixel_color);
+		}
+	}
+
+	// Draw the triangle
 }
 
 void VGA_clear() {
@@ -129,13 +172,20 @@ void VGA_text_clear() {
 
 void VGA_text(int x, int y, char * text_ptr) {
 	// Subroutine to send a string of text to the VGA monitor
-	int offset= (y << 7) + x;
+	int offset = (y << 7) + x;
 	volatile char *character_buffer = (char *) 0x09000000;   // VGA character buffer
 
+	int char_count = 0;
 	while ( *(text_ptr) ) {
+		if (char_count >= 79) {
+			y += 2;
+			offset = (y << 7) + x;
+			char_count = 0;
+		}
 		*(character_buffer + offset) = *(text_ptr);   // write to the character buffer
 		++text_ptr;
 		++offset;
+		++char_count;
 	}
 }
 
@@ -159,14 +209,12 @@ void VGA_box(int x1, int y1, int x2, int y2, short pixel_color) {
 
 /* Definition of Tasks */
 
-void TaskIdle(void* pdata) {
+void TaskStartScreen(void* pdata) {
 	// Initial task
-	// Needs to stay until KEY1 is pressed
+	// Needs to stay until KEY0 is pressed
 	// Can only run in idle state; then once started, pends until GAME_RESET is high
 
 	int seed_val = OSTimeGet(); // for random number generation
-
-	char *idle_msg = "KEY1 to start...";
 
 	while(1) {
 
@@ -177,10 +225,8 @@ void TaskIdle(void* pdata) {
 		seed_val = OSTimeGet();
 		srand(seed_val);
 
-		// Clear LCD Display
-		LCD_clear();
-
 		// Reset Global Game Vars
+		location = 0;
 		step_count = 0;
 		time_250ms = 0;
     time_rem_SS = 30;
@@ -189,9 +235,14 @@ void TaskIdle(void* pdata) {
 		tot_time_SS = 0;
 		tot_time_MM = 0;
 
-		// Print "Press KEY1 to start game..." on top row of LCD Display
-		LCD_cursor(0,1);
-		LCD_text(idle_msg);
+		// display initial message
+		VGA_text(MSG_BASE_X, MSG_BASE_Y, LUT_location_msg[location]);
+
+		// display initial question
+		VGA_text(QUESTION_BASE_X, QUESTION_BASE_Y, LUT_location_question[location]);
+
+		// TEST TODO - DISPLAY NORTH ARROW
+		VGA_north_arrow();
 
 		// Wait until game is reset until idling again
 		value = OSFlagPend(GameStatus, GAME_RESET, OS_FLAG_WAIT_SET_ANY + OS_FLAG_CONSUME, 0, &err);
@@ -201,16 +252,16 @@ void TaskIdle(void* pdata) {
 	}
 }
 
-void TaskScanKey(void* pdata) {
+void TaskMakeChoice(void* pdata) {
 	// Needed in all states - never pend
-	// Driver for most (all?) states / event flags; for sure the ones driven by KEY presses
+	// Driver for most states / event flags
 
 	OS_FLAGS flags;
 
 	while(1) {
 
 		// Protect Key Inputs with KeySem
-		OSSemPend(KeySem, 0, &err);
+		OSSemPend(LocSem, 0, &err);
 
 		// Read Key Values
 		KEY_val = *(KEY_ptr) & 0xF;
@@ -233,57 +284,12 @@ void TaskScanKey(void* pdata) {
 		flags = OSFlagQuery(GameStatus, &err);
 
 		// State driver - Dependent on what state we're currently in
-		if (!(flags & GAME_ACTIVE) && (flags < 0x08) ) {
-			// IDLE state
-
-			if ( !(KEY_val & KEY1) && (KEY1_flag) ) {
-				// Start the game - Enable Active State
-				KEY1_flag = 0;
-				value = OSFlagPost(GameStatus, GAME_ACTIVE, OS_FLAG_SET, &err);
-			}
-
-		} else if ( (flags & GAME_ACTIVE) && (flags < 0x08) ) {
-			// ACTIVE state; NOT in finished or reset state
-
-			if (flags & GAME_PAUSED) {
-				// PAUSED state
-
-				if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
-					// Reset game, enter GAME_RESET state
-					KEY0_flag = 0;
-					value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_PAUSED + GAME_FINISHED + GAME_WAITING_FOR_ANSWER, OS_FLAG_CLR, &err);
-					value = OSFlagPost(GameStatus, GAME_RESET, OS_FLAG_SET, &err);
-				} else if ( !(KEY_val & KEY1) && (KEY1_flag) ) {
-					// Resume game
-					KEY1_flag = 0;
-					value = OSFlagPost(GameStatus, GAME_PAUSED, OS_FLAG_CLR, &err);
-				}
-
-			} else if (!(flags & GAME_PAUSED)) {
-				// PLAY state
-
-				if  ( !(KEY_val & KEY1) && (KEY1_flag) ) {
-					// Pause game
-					KEY1_flag = 0;
-					value = OSFlagPost(GameStatus, GAME_PAUSED, OS_FLAG_SET, &err);
-
-				} else if (flags & GAME_WAITING_FOR_ANSWER) {
-					// Playing - WAITING_FOR_INPUT State
-
-					if  ( !(KEY_val & KEY2) && (KEY2_flag) ) {
-						// Submit answer
-						KEY2_flag = 0;
-						value = OSFlagPost(GameStatus, GAME_WAITING_FOR_ANSWER, OS_FLAG_CLR, &err);
-					}
-				}
-			}
-		}
 
 		if (flags & GAME_FINISHED) {
 			// GAME_FINISHED state
 
 			// disable active game state flags
-			value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_PAUSED + GAME_WAITING_FOR_ANSWER, OS_FLAG_CLR, &err);
+			value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_NEW_LOCATION, OS_FLAG_CLR, &err);
 
 			if  ( !(KEY_val & KEY0) && (KEY0_flag) ) {
 				// Reset game
@@ -296,10 +302,10 @@ void TaskScanKey(void* pdata) {
 			// GAME_RESET state
 
 			// Reset event flags to default settings
-			value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_PAUSED + GAME_FINISHED + GAME_WAITING_FOR_ANSWER, OS_FLAG_CLR, &err);
+			value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_NEW_LOCATION + GAME_FINISHED, OS_FLAG_CLR, &err);
 		}
 
-		OSSemPost(KeySem);
+		OSSemPost(LocSem);
 
 		OSTimeDly(1);
 	}
@@ -321,7 +327,7 @@ void TaskStopwatch(void* pdata) {
 		// to send total time elapsed to taskDispResults: GAME_FINISHED = 1
 		flags = OSFlagQuery(GameStatus, &err);
 
-		if ( (flags & GAME_ACTIVE) && (!(flags & GAME_PAUSED)) ) {
+		if (flags & GAME_ACTIVE) {
 			// Game is ACTIVE, and NOT PAUSED
 
 			time_250ms++;
@@ -351,7 +357,7 @@ void TaskStopwatch(void* pdata) {
 			}
 
 			// Send time remaining to taskDispRemTime
-			char time_rem_SS_char[LCD_SIZE];
+			char time_rem_SS_char[VGA_TEXT_MAX_SIZE];
 			sprintf(time_rem_SS_char, "%.2ds             ", time_rem_SS);
 
 			OSMboxPost(MBoxRemTime, (void *)&time_rem_SS_char[0]);
@@ -364,49 +370,30 @@ void TaskStopwatch(void* pdata) {
 }
 
 
-void TaskGame(void* pdata) {
-
-	int rand_num;
+void TaskDispNewLocation(void* pdata) {
+	// Displays options & relevant text based on the current location
 
 	while(1) {
-
-		// blocking delay until game is activated (to prevent useless processing in IDLE state)
 		value = OSFlagPend(GameStatus, GAME_ACTIVE, OS_FLAG_WAIT_SET_ALL, 0, &err);
 
-		round_num++;
+		value = OSFlagPend(GameStatus, GAME_NEW_LOCATION, OS_FLAG_WAIT_SET_ALL + OS_FLAG_CONSUME, 0, &err);
 
-		// generate new random number, between 1 & 255
-		rand_num = ( (rand() % 255) + 1 );
+		// display message based on current (new) location
+		////VGA_text(0, 0, LUT_location_msg[location]);
 
-		// display rand number
-		char rand_msg[LCD_SIZE];
-		sprintf(rand_msg, "%d             ", rand_num);
+		// display question based on current (new) location
+		////VGA_text(0, 0, LUT_location_question[location]);
 
-		LCD_cursor(0,1);
-		LCD_text(rand_msg);
+		// display options based on current (new) location
+		////VGA_disp_options(location);
 
-		// wait for user input answer
-		value = OSFlagPost(GameStatus, GAME_WAITING_FOR_ANSWER, OS_FLAG_SET, &err);
-		value = OSFlagPend(GameStatus, GAME_WAITING_FOR_ANSWER, OS_FLAG_WAIT_CLR_ALL, 0, &err);
-
-		if (binary_answer == rand_num) {
-			score++;
-		}
-
-		// once 10 rounds have been completed, clear active game flags & enter GAME_FINISHED state
-		if (round_num >= 10) {
-			value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_PAUSED + GAME_WAITING_FOR_ANSWER, OS_FLAG_CLR, &err);
-			value = OSFlagPost(GameStatus, GAME_FINISHED, OS_FLAG_SET, &err);
-		}
-
-		time_rem_SS = 30;
-
-		OSTimeDly(2);
+		OSTimeDly(4);
 
 	}
 }
 
 void TaskDispRemTime(void* pdata) {
+	// displays time remaining (for entire game, and each step)
 	char *time_msg; // to receive MBoxRemTime from stopwatch
 
 	OS_FLAGS flags;
@@ -419,15 +406,13 @@ void TaskDispRemTime(void* pdata) {
 		// non-blocking delay ensuring game is active and in play mode
 		flags = OSFlagQuery(GameStatus, &err);
 
-		if ( (flags & GAME_ACTIVE) && (!(flags & GAME_PAUSED)) && (!(flags & GAME_FINISHED))) {
+		if ( (flags & GAME_ACTIVE) && (!(flags & GAME_FINISHED))) {
 
 			// receive msg from MBoxRemTime (from taskStopwatch) - Pend until it's ready
 			time_msg = (char *)OSMboxPend(MBoxRemTime, 0 , &err);
 
 			if (err == OS_ERR_NONE) {
-				// No error; display remaining time on top row of LCD
-				LCD_cursor(0,0);
-				LCD_text(time_msg);
+				// No error; display remaining time
 
 			} else {
 				// Error on receiving msg
@@ -435,11 +420,6 @@ void TaskDispRemTime(void* pdata) {
 				printf("%d: Error on Receiving MBoxRemTime via OSMboxPend in TaskDispRemTime\n", current_time);
 			}
 
-			char score_msg[LCD_SIZE];
-			sprintf(score_msg, "%d", score);
-
-			LCD_cursor(6,0);
-			LCD_text(score_msg);
 		}
 
 		OSTimeDly(4);
@@ -458,21 +438,10 @@ void TaskDispResults(void* pdata) {
 
 		// Receive the total elapsed time value from TaskStopwatch, display on top row of LCD
 
-		// Clear LCD upon entering state
-		LCD_clear();
-
 		// Display total score & elapsed time global vars
-		char tot_time_MMSS_msg[LCD_SIZE];
+		char tot_time_MMSS_msg[VGA_TEXT_MAX_SIZE];
 		sprintf(tot_time_MMSS_msg, "%.2d:%.2d", tot_time_MM, tot_time_SS);
 
-		LCD_cursor(0,0);
-		LCD_text(tot_time_MMSS_msg);
-
-		char score_msg[LCD_SIZE];
-		sprintf(score_msg, "%d         ", score);
-
-		LCD_cursor(6,0);
-		LCD_text(score_msg);
 
 		// after running once, wait until a new game is started (and finished)
 		value = OSFlagPend(GameStatus, GAME_RESET, OS_FLAG_WAIT_SET_ALL, 0, &err);
@@ -487,35 +456,26 @@ void TaskDispResults(void* pdata) {
 int main(void)
 {
 
-  LCD_clear();  		// Clear LCD before operation
-  LCD_cursor_off();  	// turn off blinking LCD Cursor
+	// Clear VGA before operation
+  VGA_clear();
+  VGA_text_clear();
 
-  OSTaskCreateExt(TaskIdle,
+  OSTaskCreateExt(TaskStartScreen,
                   NULL,
-                  (void *)&TaskIdle_Stk[TASK_STACKSIZE-1],
-				          TASKIDLE_PRIORITY,
-				          TASKIDLE_PRIORITY,
-						  TaskIdle_Stk,
+                  (void *)&TaskStartScreen_Stk[TASK_STACKSIZE-1],
+				          TASKSTARTSCREEN_PRIORITY,
+				          TASKSTARTSCREEN_PRIORITY,
+								  TaskStartScreen_Stk,
                   TASK_STACKSIZE,
                   NULL,
                   0);
 
-  OSTaskCreateExt(TaskScanKey,
+  OSTaskCreateExt(TaskMakeChoice,
                   NULL,
-                  (void *)&TaskScanKey_stk[TASK_STACKSIZE-1],
-				          TASKSCANKEY_PRIORITY,
-				          TASKSCANKEY_PRIORITY,
-				          TaskScanKey_stk,
-                  TASK_STACKSIZE,
-                  NULL,
-                  0);
-
-  OSTaskCreateExt(TaskScanSW,
-                  NULL,
-                  (void *)&TaskScanSW_stk[TASK_STACKSIZE-1],
-				          TASKSCANSW_PRIORITY,
-				          TASKSCANSW_PRIORITY,
-				          TaskScanSW_stk,
+                  (void *)&TaskMakeChoice_stk[TASK_STACKSIZE-1],
+				          TASKMAKECHOICE_PRIORITY,
+				          TASKMAKECHOICE_PRIORITY,
+				          TaskMakeChoice_stk,
                   TASK_STACKSIZE,
                   NULL,
                   0);
@@ -550,20 +510,20 @@ int main(void)
                   NULL,
                   0);
 
-  OSTaskCreateExt(TaskGame,
+  OSTaskCreateExt(TaskDispNewLocation,
                   NULL,
-                  (void *)&TaskGame_stk[TASK_STACKSIZE-1],
-  			          TASKGAME_PRIORITY,
-  			          TASKGAME_PRIORITY,
-  			          TaskGame_stk,
+                  (void *)&TaskDispNewLocation_stk[TASK_STACKSIZE-1],
+  			          TASKDISPNEWLOCATION_PRIORITY,
+  			          TASKDISPNEWLOCATION_PRIORITY,
+  			          TaskDispNewLocation_stk,
                   TASK_STACKSIZE,
                   NULL,
                   0);
 
-  KeySem = OSSemCreate(1);
+
+  LocSem = OSSemCreate(1);
 
   MBoxRemTime = OSMboxCreate((void *)0);
-  MBoxTotTime = OSMboxCreate((void *)0);
 
   GameStatus = OSFlagCreate(0x00, &err);
 
