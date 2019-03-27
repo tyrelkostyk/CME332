@@ -73,12 +73,12 @@ const char LUT_loc_east_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 
 // lut for the text associated with the South option (if applicable)
 const char LUT_loc_south_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
-	" ",			// Loc 0: Start screen (no north option)
+	" ",			// Loc 0: Start screen (no south option)
 };
 
 // lut for the text associated with the West option (if applicable)
 const char LUT_loc_west_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
-	" ",			// Loc 0: Start screen (no north option)
+	" ",			// Loc 0: Start screen (no west option)
 };
 
 /* Definition of Semaphores & Mailboxes */
@@ -130,6 +130,49 @@ void VGA_pixel(int x, int y, short pixel_color){
 	*(pixel_buffer + offset) = pixel_color;
 }
 
+void VGA_clear() {
+	// Set entire VGA screen to black
+	int x, y;
+
+	for (x = 0; x < 320; x++) {
+		for (y = 0; y < 240; y++) {
+			VGA_pixel(x, y, 0);
+		}
+	}
+}
+
+void VGA_text(int x, int y, char * text_ptr) {
+	// Subroutine to send a string of text to the VGA monitor
+	int offset = (y << 7) + x;
+	volatile char *character_buffer = (char *) 0x09000000;   // VGA character buffer
+
+	int char_count = 0;
+	while ( *(text_ptr) ) {
+		if (char_count >= 79) {
+			y += 2;
+			offset = (y << 7) + x;
+			char_count = 0;
+		}
+		*(character_buffer + offset) = *(text_ptr);   // write to the character buffer
+		++text_ptr;
+		++offset;
+		++char_count;
+	}
+}
+
+void VGA_text_clear() {
+	// Subroutine to clear the text on the VGA monitor
+	int x, y, offset;
+	volatile char *character_buffer = (char *) 0x09000000;   // VGA character buffer
+
+	for (x = 0; x < 80; x++) {
+		for (y = 0; y < 60; y++) {
+			*(character_buffer + offset) = ' ';   // write to the character buffer
+			offset = (y << 7) + x;
+		}
+	}
+}
+
 void VGA_north_arrow() {
 	// draws a north (upwards) facing arrow
 	int x_base = 150;
@@ -151,46 +194,66 @@ void VGA_north_arrow() {
 	}
 }
 
-void VGA_clear() {
-	// Set entire VGA screen to black
-	int x, y;
+void VGA_south_arrow() {
+	// draws a south (downwards) facing arrow
+	int x_base = 150;
+	int y_base = 180;
+	short pixel_color = 0xFFFF;		// white
 
-	for (x = 0; x < 320; x++) {
-		for (y = 0; y < 240; y++) {
-			VGA_pixel(x, y, 0);
+	// draw the center line
+	for (int x = x_base; x < (x_base+4); x++) {
+		for (int y = y_base; y < (y_base+20); y++) {
+			VGA_pixel(x, y, pixel_color);
+		}
+	}
+
+	// Draw the triangle
+	for (int y = y_base+19; y > (y_base+12); y--) {
+		for (int x = (x_base-(y-y_base)); x < (x_base+(y-y_base))+4; x++) {
+			VGA_pixel(x, y, pixel_color);
 		}
 	}
 }
 
-void VGA_text_clear() {
-	// Subroutine to clear the text on the VGA monitor
-	int x, y, offset;
-	volatile char *character_buffer = (char *) 0x09000000;   // VGA character buffer
+void VGA_east_arrow() {
+	// draws a east (right-wards) facing arrow
+	int x_base = 230;
+	int y_base = 150;
+	short pixel_color = 0xFFFF;		// white
 
-	for (x = 0; x < 80; x++) {
-		for (y = 0; y < 60; y++) {
-			*(character_buffer + offset) = ' ';   // write to the character buffer
-			offset = (y << 7) + x;
+	// draw the center line
+	for (int y = y_base; y < (y_base+4); y++) {
+		for (int x = x_base; x < (x_base+20); x++) {
+			VGA_pixel(x, y, pixel_color);
+		}
+	}
+
+	// Draw the triangle
+	for (int x = x_base+19; x > (x_base+12); x--) {
+		for (int y = (y_base-(x-x_base)); y < (y_base+(x-x_base))+4; y++) {
+			VGA_pixel(x, y, pixel_color);
 		}
 	}
 }
 
-void VGA_text(int x, int y, char * text_ptr) {
-	// Subroutine to send a string of text to the VGA monitor
-	int offset = (y << 7) + x;
-	volatile char *character_buffer = (char *) 0x09000000;   // VGA character buffer
+void VGA_west_arrow() {
+	// draws a west (left-wards) facing arrow
+	int x_base = 70;
+	int y_base = 150;
+	short pixel_color = 0xFFFF;		// white
 
-	int char_count = 0;
-	while ( *(text_ptr) ) {
-		if (char_count >= 79) {
-			y += 2;
-			offset = (y << 7) + x;
-			char_count = 0;
+	// draw the center line
+	for (int y = y_base; y < (y_base+4); y++) {
+		for (int x = x_base; x < (x_base+20); x++) {
+			VGA_pixel(x, y, pixel_color);
 		}
-		*(character_buffer + offset) = *(text_ptr);   // write to the character buffer
-		++text_ptr;
-		++offset;
-		++char_count;
+	}
+
+	// Draw the triangle
+	for (int x = x_base+1; x < (x_base+10); x++) {
+		for (int y = (y_base-(x-x_base)); y < (y_base+(x-x_base))+4; y++) {
+			VGA_pixel(x, y, pixel_color);
+		}
 	}
 }
 
@@ -229,8 +292,11 @@ void TaskStartScreen(void* pdata) {
 		// display initial question
 		VGA_text(QUESTION_BASE_X, QUESTION_BASE_Y, LUT_location_question[location]);
 
-		// TEST TODO - DISPLAY NORTH ARROW
+		// TEST TODO - DISPLAYING ARROWS
 		VGA_north_arrow();
+		VGA_south_arrow();
+		VGA_east_arrow();
+		VGA_west_arrow();
 
 		// Wait until game is reset until idling again
 		value = OSFlagPend(GameStatus, GAME_RESET, OS_FLAG_WAIT_SET_ANY + OS_FLAG_CONSUME, 0, &err);
@@ -309,48 +375,43 @@ void TaskStopwatch(void* pdata) {
 
 		// blocking delay until game is activated (to prevent useless processing in IDLE state)
 		value = OSFlagPend(GameStatus, GAME_ACTIVE, OS_FLAG_WAIT_SET_ALL, 0, &err);
+/*
+int time_rem_SS = 30;
+int tot_time_rem_SS, tot_time_rem_MM;
+int tot_time_SS, tot_time_MM;
+*/
+		time_250ms++;
+		if (time_250ms >= 4) {
+			time_250ms = 0;
 
-		// non-blocking check of GameStatus
-		// to run counter: GAME_ACTIVE = 1, GAME_PAUSED = 0
-		// to send total time elapsed to taskDispResults: GAME_FINISHED = 1
-		flags = OSFlagQuery(GameStatus, &err);
+			// counter for total time elapsed
+			if (tot_time_SS >= 59) {
+				tot_time_SS = 0;
 
-		if (flags & GAME_ACTIVE) {
-			// Game is ACTIVE, and NOT PAUSED
-
-			time_250ms++;
-			if (time_250ms >= 4) {
-				time_250ms = 0;
-
-				// counter for total time
-				if (tot_time_SS >= 59) {
-					tot_time_SS = 0;
-
-					if (tot_time_MM >= 59) {
-						tot_time_MM = 0;
-					} else {
-						tot_time_MM++;
-					}
-
+				if (tot_time_MM >= 59) {
+					tot_time_MM = 0;
 				} else {
-					tot_time_SS++;
+					tot_time_MM++;
 				}
 
-				// counter for time remaining
-				if (time_rem_SS > 0) {
-					time_rem_SS--;
-				} else {
-					value = OSFlagPost(GameStatus, GAME_RESET, OS_FLAG_SET, &err);
-				}
+			} else {
+				tot_time_SS++;
 			}
 
-			// Send time remaining to taskDispRemTime
-			char time_rem_SS_char[VGA_TEXT_MAX_SIZE];
-			sprintf(time_rem_SS_char, "%.2ds             ", time_rem_SS);
-
-			OSMboxPost(MBoxRemTime, (void *)&time_rem_SS_char[0]);
-
+			// counter for time remaining
+			if (time_rem_SS > 0) {
+				time_rem_SS--;
+			} else {
+				value = OSFlagPost(GameStatus, GAME_RESET, OS_FLAG_SET, &err);
+			}
 		}
+
+		// Send time remaining to taskDispRemTime
+		char time_rem_SS_char[VGA_TEXT_MAX_SIZE];
+		sprintf(time_rem_SS_char, "%.2ds             ", time_rem_SS);
+
+		OSMboxPost(MBoxRemTime, (void *)&time_rem_SS_char[0]);
+
 
 		OSTimeDly(1);
 
