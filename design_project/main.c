@@ -14,7 +14,7 @@
 #define KEY3									0x08
 
 #define MAX_LOCATIONS 				85
-#define VGA_TEXT_MAX_SIZE			120
+#define VGA_TEXT_MAX_SIZE			200
 
 #define MSG_BASE_X						1
 #define MSG_BASE_Y						5
@@ -144,6 +144,11 @@ void VGA_north_arrow() {
 	}
 
 	// Draw the triangle
+	for (int y = y_base-1; y < (y_base+8); y++) {
+		for (int x = (x_base-(y-y_base)); x < (x_base+(y-y_base))+4; x++) {
+			VGA_pixel(x, y, pixel_color);
+		}
+	}
 }
 
 void VGA_clear() {
@@ -186,23 +191,6 @@ void VGA_text(int x, int y, char * text_ptr) {
 		++text_ptr;
 		++offset;
 		++char_count;
-	}
-}
-
-void VGA_box(int x1, int y1, int x2, int y2, short pixel_color) {
-	// Draw a filled rectangle on the VGA monitor
-
-	int offset, row, col;
-	volatile short * pixel_buffer = (short *) 0x08000000;	// VGA pixel buffer
-
-	/* assume that the box coordinates are valid */
-	for (row = y1; row <= y2; row++) {
-		col = x1;
-		while (col <= x2) {
-			offset = (row << 9) + col;
-			*(pixel_buffer + offset) = pixel_color; // compute halfword address, set pixel
-			++col;
-		}
 	}
 }
 
