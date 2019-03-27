@@ -30,7 +30,7 @@ int KEY0_flag, KEY1_flag, KEY2_flag, KEY3_flag;
 int location, step_count;
 
 int time_250ms;
-int time_rem_SS = 30;
+int step_time_rem_SS = 30;
 int tot_time_rem_SS, tot_time_rem_MM;
 int tot_time_SS, tot_time_MM;
 
@@ -95,7 +95,8 @@ OS_FLAGS value;
 #define GAME_ACTIVE 				0x01  // 0 = IDLE, 1 = ACTIVE
 #define GAME_NEW_LOCATION		0x02  // 0 = No new location to render, 1 = New location to render (within ACTIVE state)
 #define GAME_FINISHED				0x04  // 0 = GAME ONGOING (or IDLE), 1 = GAME COMPLETED
-#define GAME_RESET					0x08  // 0 = GAME ONGOING (or IDLE), 1 = GAME RESET
+#define GAME_LOST						0x08	// 0 = GAME ONGONG (or IDLE), 1 = GAME LOST
+#define GAME_RESET					0x10  // 0 = GAME ONGOING (or IDLE), 1 = GAME RESET
 
 
 /* Definition of Task Stacks */
@@ -280,7 +281,7 @@ void TaskStartScreen(void* pdata) {
 		location = 0;
 		step_count = 0;
 		time_250ms = 0;
-    time_rem_SS = 30;
+    step_time_rem_SS = 30;
     tot_time_rem_SS = 0;
     tot_time_rem_MM = 0;
 		tot_time_SS = 0;
@@ -323,14 +324,22 @@ void TaskMakeChoice(void* pdata) {
 			KEY0_flag = 1;
 			KEY1_flag = 0;
 			KEY2_flag = 0;
+			KEY3_flag = 0;
 		} else if (KEY_val == KEY1) {				// KEY1
 			KEY0_flag = 0;
 			KEY1_flag = 1;
 			KEY2_flag = 0;
+			KEY3_flag = 0;
 		} else if (KEY_val == KEY2) {				// KEY2
 			KEY0_flag = 0;
 			KEY1_flag = 0;
 			KEY2_flag = 1;
+			KEY3_flag = 0;
+		} else if (KEY_val == KEY3) {				// KEY2
+			KEY0_flag = 0;
+			KEY1_flag = 0;
+			KEY2_flag = 0;
+			KEY3_flag = 1;
 		}
 
 
@@ -338,9 +347,44 @@ void TaskMakeChoice(void* pdata) {
 		flags = OSFlagQuery(GameStatus, &err);
 
 		// State driver - Dependent on what state we're currently in
+		if (!(flags & GAME_ACTIVE)) {
+			// IDLE state
+
+			if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
+				KEY0_flag = 0;
+				value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+			}
+		}
+
+		if ( (flags & GAME_ACTIVE) && (!(flags & GAME_NEW_LOCATION)) ) {
+			// ACTIVE state (NOT rendering new location, i.e. taking input)
+
+			if ( !(KEY_val & KEY0) && (KEY0_flag) && (LUT_location_permissions[location] & KEY0) ) {
+				KEY0_flag = 0;
+			} else if ( !(KEY_val & KEY1) && (KEY1_flag) && (LUT_location_permissions[location] & KEY1) ) {
+				KEY1_flag = 0;
+			} else if ( !(KEY_val & KEY2) && (KEY2_flag) && (LUT_location_permissions[location] & KEY2) ) {
+				KEY2_flag = 0;
+			} else if ( !(KEY_val & KEY3) && (KEY3_flag) && (LUT_location_permissions[location] & KEY3) ) {
+				KEY3_flag = 0;
+			}
+		}
 
 		if (flags & GAME_FINISHED) {
-			// GAME_FINISHED state
+			// GAME FINISHED state
+
+			// disable active game state flags
+			value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_NEW_LOCATION, OS_FLAG_CLR, &err);
+
+			if  ( !(KEY_val & KEY0) && (KEY0_flag) ) {
+				// Reset game
+				KEY0_flag = 0;
+				value = OSFlagPost(GameStatus, GAME_RESET, OS_FLAG_SET, &err);
+			}
+		}
+
+		if (flags & GAME_LOST) {
+			// GAME LOST state
 
 			// disable active game state flags
 			value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_NEW_LOCATION, OS_FLAG_CLR, &err);
@@ -353,10 +397,10 @@ void TaskMakeChoice(void* pdata) {
 		}
 
 		if (flags & GAME_RESET) {
-			// GAME_RESET state
+			// GAME RESET state
 
 			// Reset event flags to default settings
-			value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_NEW_LOCATION + GAME_FINISHED, OS_FLAG_CLR, &err);
+			value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_NEW_LOCATION + GAME_FINISHED + GAME_LOST, OS_FLAG_CLR, &err);
 		}
 
 		OSSemPost(LocSem);
@@ -376,8 +420,9 @@ void TaskStopwatch(void* pdata) {
 		// blocking delay until game is activated (to prevent useless processing in IDLE state)
 		value = OSFlagPend(GameStatus, GAME_ACTIVE, OS_FLAG_WAIT_SET_ALL, 0, &err);
 /*
-int time_rem_SS = 30;
-int tot_time_rem_SS, tot_time_rem_MM;
+int step_time_rem_SS = 30;
+int tot_time_rem_SS = 59;
+int tot_time_rem_MM = 9;
 int tot_time_SS, tot_time_MM;
 */
 		time_250ms++;
@@ -398,19 +443,39 @@ int tot_time_SS, tot_time_MM;
 				tot_time_SS++;
 			}
 
-			// counter for time remaining
-			if (time_rem_SS > 0) {
-				time_rem_SS--;
+			// counter for time remaining each step
+			if (step_time_rem_SS > 0) {
+				step_time_rem_SS--;
 			} else {
+				// TODO - change to "GAME_LOST"
 				value = OSFlagPost(GameStatus, GAME_RESET, OS_FLAG_SET, &err);
 			}
+
+			// counter for total game time remaining
+			if (tot_time_rem_SS > 0) {
+				tot_time_rem_SS--;
+
+			} else {
+				tot_time_rem_SS = 59;
+
+				if (tot_time_rem_MM > 0) {
+					tot_time_rem_MM--;
+
+					else {
+						// MM & SS are zero -> game over!
+						// TODO - change to "GAME_LOST"
+						value = OSFlagPost(GameStatus, GAME_LOST, OS_FLAG_SET, &err);
+					}
+				}
+			}
+
 		}
 
 		// Send time remaining to taskDispRemTime
-		char time_rem_SS_char[VGA_TEXT_MAX_SIZE];
-		sprintf(time_rem_SS_char, "%.2ds             ", time_rem_SS);
+		char step_time_rem_SS_char[VGA_TEXT_MAX_SIZE];
+		sprintf(step_time_rem_SS_char, "%.2ds", step_time_rem_SS);
 
-		OSMboxPost(MBoxRemTime, (void *)&time_rem_SS_char[0]);
+		OSMboxPost(MBoxRemTime, (void *)&step_time_rem_SS_char[0]);
 
 
 		OSTimeDly(1);
@@ -427,6 +492,8 @@ void TaskDispNewLocation(void* pdata) {
 
 		value = OSFlagPend(GameStatus, GAME_NEW_LOCATION, OS_FLAG_WAIT_SET_ALL + OS_FLAG_CONSUME, 0, &err);
 
+		OSSemPend(LocSem, 0, &err);
+
 		// display message based on current (new) location
 		////VGA_text(0, 0, LUT_location_msg[location]);
 
@@ -435,6 +502,8 @@ void TaskDispNewLocation(void* pdata) {
 
 		// display options based on current (new) location
 		////VGA_disp_options(location);
+
+		OSSemPost(LocSem);
 
 		OSTimeDly(4);
 
