@@ -198,7 +198,7 @@ void VGA_north_arrow() {
 void VGA_south_arrow() {
 	// draws a south (downwards) facing arrow
 	int x_base = 150;
-	int y_base = 180;
+	int y_base = 200;
 	short pixel_color = 0xFFFF;		// white
 
 	// draw the center line
@@ -219,7 +219,7 @@ void VGA_south_arrow() {
 void VGA_east_arrow() {
 	// draws a east (right-wards) facing arrow
 	int x_base = 230;
-	int y_base = 150;
+	int y_base = 168;
 	short pixel_color = 0xFFFF;		// white
 
 	// draw the center line
@@ -230,7 +230,7 @@ void VGA_east_arrow() {
 	}
 
 	// Draw the triangle
-	for (int x = x_base+19; x > (x_base+12); x--) {
+	for (int x = x_base+21; x > (x_base+12); x--) {
 		for (int y = (y_base-(x-x_base)); y < (y_base+(x-x_base))+4; y++) {
 			VGA_pixel(x, y, pixel_color);
 		}
@@ -240,7 +240,7 @@ void VGA_east_arrow() {
 void VGA_west_arrow() {
 	// draws a west (left-wards) facing arrow
 	int x_base = 70;
-	int y_base = 150;
+	int y_base = 168;
 	short pixel_color = 0xFFFF;		// white
 
 	// draw the center line
@@ -251,7 +251,7 @@ void VGA_west_arrow() {
 	}
 
 	// Draw the triangle
-	for (int x = x_base+1; x < (x_base+10); x++) {
+	for (int x = x_base-1; x < (x_base+8); x++) {
 		for (int y = (y_base-(x-x_base)); y < (y_base+(x-x_base))+4; y++) {
 			VGA_pixel(x, y, pixel_color);
 		}
@@ -461,11 +461,10 @@ int tot_time_SS, tot_time_MM;
 				if (tot_time_rem_MM > 0) {
 					tot_time_rem_MM--;
 
-					else {
-						// MM & SS are zero -> game over!
-						// TODO - change to "GAME_LOST"
-						value = OSFlagPost(GameStatus, GAME_LOST, OS_FLAG_SET, &err);
-					}
+				} else {
+					// MM & SS are zero -> game over!
+					// TODO - change to "GAME_LOST"
+					value = OSFlagPost(GameStatus, GAME_LOST, OS_FLAG_SET, &err);
 				}
 			}
 
