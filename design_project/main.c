@@ -46,6 +46,70 @@ const char LUT_location_permissions [MAX_LOCATIONS] = {
   KEY0,                 // Loc 4: East
   KEY0,                 // Loc 5: East
   KEY0+KEY1,            // Loc 6: All directions
+	KEY3+KEY0,						// Loc 7: East & West
+	KEY0+KEY2,						// Loc 8: East & South
+	0,										// Loc 9: Not a valid spot
+	KEY1,									// Loc 10: South
+	KEY0+KEY1,						// Loc 11: East & South
+	KEY3+KEY1,						// Loc 12: West & South
+	KEY0+KEY1,						// Loc 13: East & South
+	KEY3+KEY1,						// Loc 14: West & South
+	KEY1+KEY2,						// Loc 15: North & South
+	0,										// Loc 16: Not a valid spot
+	KEY1+KEY2,						// Loc 17: North & South
+	,											// Loc 18:
+	,											// Loc 19:
+	,											// Loc 20:
+	,											// Loc 21:
+	,											// Loc 22:
+	,											// Loc 23:
+	,											// Loc 24:
+	,											// Loc 25:
+	,											// Loc 26:
+	,											// Loc 27:
+	,											// Loc 28:
+	,											// Loc 29:
+	,											// Loc 30:
+	,											// Loc 31:
+	,											// Loc 32:
+	,											// Loc 33:
+	,											// Loc 34:
+	,											// Loc 35:
+	,											// Loc 36:
+	,											// Loc 37:
+	,											// Loc 38:
+	,											// Loc 39:
+	,											// Loc 40:
+	,											// Loc 41:
+	,											// Loc 42:
+	,											// Loc 43:
+	,											// Loc 44:
+	,											// Loc 45:
+	,											// Loc 46:
+	,											// Loc 47:
+	,											// Loc 48:
+	,											// Loc 49:
+	,											// Loc 50:
+	,											// Loc 51:
+	,											// Loc 52:
+	,											// Loc 53:
+	,											// Loc 54:
+	,											// Loc 55:
+	,											// Loc 56:
+	,											// Loc 57:
+	,											// Loc 58:
+	,											// Loc 59:
+	,											// Loc 60:
+	,											// Loc 61:
+	,											// Loc 62:
+	,											// Loc 63:
+	,											// Loc 64:
+	,											// Loc 65:
+	,											// Loc 66:
+	,											// Loc 67:
+	,											// Loc 68:
+	,											// Loc 69:
+	,											// Loc 70:
 
 
 };
@@ -359,14 +423,35 @@ void TaskMakeChoice(void* pdata) {
 		if ( (flags & GAME_ACTIVE) && (!(flags & GAME_NEW_LOCATION)) ) {
 			// ACTIVE state (NOT rendering new location, i.e. taking input)
 
-			if ( !(KEY_val & KEY0) && (KEY0_flag) && (LUT_location_permissions[location] & KEY0) ) {
+			// TODO - add edge cases for "action spots"
+				// Before checking for regular locations? Probably
+			if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
+				// KEY0 press - Typically means go East (rightwards)
 				KEY0_flag = 0;
-			} else if ( !(KEY_val & KEY1) && (KEY1_flag) && (LUT_location_permissions[location] & KEY1) ) {
+				if (LUT_location_permissions[location] & KEY0) {
+					location += 1;		// increment place in map by 1
+				}
+
+			} else if ( !(KEY_val & KEY1) && (KEY1_flag) ) {
+				// KEY1 press - Typically means go South (downwards)
 				KEY1_flag = 0;
-			} else if ( !(KEY_val & KEY2) && (KEY2_flag) && (LUT_location_permissions[location] & KEY2) ) {
+				if (LUT_location_permissions[location] & KEY1) {
+					location += 9;		// increment place in map by 9
+				}
+
+			} else if ( !(KEY_val & KEY2) && (KEY2_flag) ) {
+				// KEY2 press - Typically means go North (upwards)
 				KEY2_flag = 0;
-			} else if ( !(KEY_val & KEY3) && (KEY3_flag) && (LUT_location_permissions[location] & KEY3) ) {
+				if (LUT_location_permissions[location] & KEY2) {
+					location -= 9;		// decrement place in map by 9
+				}
+
+			} else if ( !(KEY_val & KEY3) && (KEY3_flag) ) {
+				// KEY3 press - Typically means go West (leftwards)
 				KEY3_flag = 0;
+				if (LUT_location_permissions[location] & KEY3) {
+					location -= 1;		// decrement place in map by 1
+				}
 			}
 		}
 
