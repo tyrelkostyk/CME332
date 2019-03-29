@@ -13,7 +13,7 @@
 #define KEY2									0x04
 #define KEY3									0x08
 
-#define MAX_LOCATIONS 				85
+#define MAX_LOCATIONS 				100
 #define VGA_TEXT_MAX_SIZE			200
 
 #define MSG_BASE_X						1
@@ -39,77 +39,107 @@ int tot_time_SS, tot_time_MM;
 
 // lut for what buttons can be pressed (and do something) for each location
 const char LUT_location_permissions [MAX_LOCATIONS] = {
-  KEY0,                 // Loc 0: Press KEY0 to Start (East)
-  KEY0,                 // Loc 1: East
-  KEY0,                 // Loc 2: East
-  KEY0,                 // Loc 3: East
-  KEY0,                 // Loc 4: East
-  KEY0,                 // Loc 5: East
-  KEY0+KEY1,            // Loc 6: All directions
-	KEY3+KEY0,						// Loc 7: East & West
-	KEY0+KEY2,						// Loc 8: East & South
-	0,										// Loc 9: Not a valid spot
-	KEY1,									// Loc 10: South
-	KEY0+KEY1,						// Loc 11: East & South
-	KEY3+KEY1,						// Loc 12: West & South
-	KEY0+KEY1,						// Loc 13: East & South
-	KEY3+KEY1,						// Loc 14: West & South
-	KEY1+KEY2,						// Loc 15: North & South
-	0,										// Loc 16: Not a valid spot
-	KEY1+KEY2,						// Loc 17: North & South
-	,											// Loc 18:
-	,											// Loc 19:
-	,											// Loc 20:
-	,											// Loc 21:
-	,											// Loc 22:
-	,											// Loc 23:
-	,											// Loc 24:
-	,											// Loc 25:
-	,											// Loc 26:
-	,											// Loc 27:
-	,											// Loc 28:
-	,											// Loc 29:
-	,											// Loc 30:
-	,											// Loc 31:
-	,											// Loc 32:
-	,											// Loc 33:
-	,											// Loc 34:
-	,											// Loc 35:
-	,											// Loc 36:
-	,											// Loc 37:
-	,											// Loc 38:
-	,											// Loc 39:
-	,											// Loc 40:
-	,											// Loc 41:
-	,											// Loc 42:
-	,											// Loc 43:
-	,											// Loc 44:
-	,											// Loc 45:
-	,											// Loc 46:
-	,											// Loc 47:
-	,											// Loc 48:
-	,											// Loc 49:
-	,											// Loc 50:
-	,											// Loc 51:
-	,											// Loc 52:
-	,											// Loc 53:
-	,											// Loc 54:
-	,											// Loc 55:
-	,											// Loc 56:
-	,											// Loc 57:
-	,											// Loc 58:
-	,											// Loc 59:
-	,											// Loc 60:
-	,											// Loc 61:
-	,											// Loc 62:
-	,											// Loc 63:
-	,											// Loc 64:
-	,											// Loc 65:
-	,											// Loc 66:
-	,											// Loc 67:
-	,											// Loc 68:
-	,											// Loc 69:
-	,											// Loc 70:
+  KEY0,                 		// Loc 0: Press KEY0 to Start (East)
+  KEY0,                 		// Loc 1: East
+  KEY0,                 		// Loc 2: East
+  KEY0,                 		// Loc 3: East
+  KEY0,                 		// Loc 4: East
+  KEY0,                 		// Loc 5: East
+  KEY0+KEY1,            		// Loc 6: East, South
+	KEY0+KEY3,								// Loc 7: East, West
+	KEY1+KEY3,								// Loc 8: West, South
+	0,												// Loc 9: Not a valid spot
+	KEY1,											// Loc 10: South
+	KEY0+KEY1,								// Loc 11: East, South
+	KEY1+KEY3,								// Loc 12: South, West
+	KEY0+KEY1,								// Loc 13: East, South
+	KEY1+KEY3,								// Loc 14: South, West
+	KEY1+KEY2,								// Loc 15: North, South
+	0,												// Loc 16: Not a valid spot
+	KEY1+KEY2,								// Loc 17: North, South
+	KEY0+KEY1,								// Loc 18: East, South
+	KEY0+KEY1+KEY2+KEY3,			// Loc 19: All directions
+	KEY2+KEY3,								// Loc 20: North, West
+	KEY0+KEY2,								// Loc 21: North, East
+	KEY2+KEY3,								// Loc 22: North, West
+	KEY0+KEY2,								// Loc 23: North, East
+	KEY0+KEY1+KEY2+KEY3,			// Loc 24: All directions
+	KEY0+KEY3,								// Loc 25: East, West
+	KEY2+KEY3,								// Loc 26: North, West
+	KEY1+KEY2,								// Loc 27: North, South
+	KEY0+KEY2,								// Loc 28: North, East
+	KEY0+KEY3,								// Loc 29: East, West
+	KEY0+KEY3,								// Loc 30: East, West
+	KEY0+KEY3,								// Loc 31: East, West
+	KEY3,											// Loc 32: West
+	KEY1+KEY2,								// Loc 33: North, South
+	0,												// Loc 34: Not a valid spot
+	KEY1,											// Loc 35: South
+	KEY1+KEY2,								// Loc 36: North, South
+	KEY0+KEY1,								// Loc 37: East, South
+	KEY0+KEY3,								// Loc 38: East, West
+	KEY0+KEY3,								// Loc 39: East, West
+	KEY0+KEY3,								// Loc 40: East, West
+	KEY0,											// Loc 41: East
+	KEY0+KEY1+KEY2++KEY3,			// Loc 42: All directions
+	KEY0+KEY3,								// Loc 43: East, West
+	KEY1+KEY2+KEY3,						// Loc 44: North, South, West
+	KEY1+KEY2,								// Loc 45: North, South
+	KEY0+KEY1+KEY2,						// Loc 46: North, East, South
+	KEY0+KEY3,								// Loc 47: East, West
+	KEY0+KEY3,								// Loc 48: East, West
+	KEY1+KEY3,								// Loc 49: South, West
+	KEY1,											// Loc 50: South
+	KEY1+KEY2,								// Loc 51: North, South
+	KEY1,											// Loc 52: South
+	KEY1+KEY2,								// Loc 53: North, South
+	KEY1+KEY2,								// Loc 54: North, South
+	KEY2,											// Loc 55: North
+	0,												// Loc 56: Not a valid spot
+	0,												// Loc 57: Not a valid spot
+	KEY1+KEY2,								// Loc 58: North, South
+	KEY1+KEY2,								// Loc 59: North, South
+	KEY1+KEY2,								// Loc 60: North, South
+	KEY0+KEY2,								// Loc 61: North, East
+	KEY2+KEY3,								// Loc 62: North, West
+	KEY0+KEY2,								// Loc 63: North, East
+	KEY0+KEY3,								// Loc 64: East, West
+	KEY0+KEY3,								// Loc 65: East, West
+	KEY0+KEY3,								// Loc 66: East, West
+	KEY0+KEY2+KEY3,						// Loc 67: North, East, West
+	KEY0+KEY1+KEY2+KEY3,			// Loc 68: All directions
+	KEY0+KEY2+KEY3,						// Loc 69: North, East, West
+	KEY0+KEY3,								// Loc 70: East, West
+	KEY1+KEY3,								// Loc 71: South, West
+	KEY0,											// Loc 72: East
+	KEY0+KEY3,								// Loc 73: East, West
+	KEY0+KEY3,								// Loc 74: East, West
+	KEY0+KEY3,								// Loc 75: East, West
+	KEY0+KEY3,								// Loc 76: East, West
+	KEY0+KEY2+KEY3,						// Loc 77: North, East, West
+	KEY3,											// Loc 78: West
+	0,												// Loc 79: Not a valid spot
+	KEY2,											// Loc 80: North
+			// ACTION SPOTS
+	,											// Loc 81:
+	,											// Loc 82:
+	,											// Loc 83:
+	,											// Loc 84:
+	,											// Loc 85:
+	,											// Loc 86:
+	,											// Loc 87:
+	,											// Loc 88:
+	,											// Loc 89:
+	,											// Loc 90:
+	,											// Loc 91:
+	,											// Loc 92:
+	,											// Loc 93:
+	,											// Loc 94:
+	,											// Loc 95:
+	,											// Loc 96:
+	,											// Loc 97:
+	,											// Loc 98:
+	,											// Loc 99:
 
 
 };
@@ -579,10 +609,10 @@ void TaskDispNewLocation(void* pdata) {
 		OSSemPend(LocSem, 0, &err);
 
 		// display message based on current (new) location
-		////VGA_text(0, 0, LUT_location_msg[location]);
+		////VGA_text(MSG_BASE_X, MSG_BASE_Y, LUT_location_msg[location]);
 
 		// display question based on current (new) location
-		////VGA_text(0, 0, LUT_location_question[location]);
+		////VGA_text(QUESTION_BASE_X, QUESTION_BASE_Y, LUT_location_question[location]);
 
 		// display options based on current (new) location
 		////VGA_disp_options(location);
