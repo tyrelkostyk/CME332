@@ -22,7 +22,18 @@
 #define QUESTION_BASE_X				1
 #define QUESTION_BASE_Y				20
 
+// TODO: Update values
+#define NORTH_MSG_BASE_X			230
+#define NORTH_MSG_BASE_Y			140
 
+#define EAST_MSG_BASE_X				230
+#define EAST_MSG_BASE_Y				140
+
+#define SOUTH_MSG_BASE_X			230
+#define SOUTH_MSG_BASE_Y			140
+
+#define WEST_MSG_BASE_X				70
+#define WEST_MSG_BASE_Y				140
 
 int KEY_val, SW_val;
 int KEY0_flag, KEY1_flag, KEY2_flag, KEY3_flag;
@@ -352,6 +363,35 @@ void VGA_west_arrow() {
 	}
 }
 
+void VGA_disp_options(int loc) {
+	// Draws arrows & prints messages next to those arrows based on current location
+
+	// Go through each direction and, if it's allowed, display the arrow & option msg
+	if (LUT_location_permissions[loc] & KEY2) {
+		// North
+		VGA_north_arrow();
+		VGA_text(NORTH_MSG_BASE_X, NORTH_MSG_BASE_Y, LUT_loc_north_option[loc]);
+	}
+
+	if (LUT_location_permissions[loc] & KEY0) {
+		// East
+		VGA_east_arrow();
+		VGA_text(EAST_MSG_BASE_X, EAST_MSG_BASE_Y, LUT_loc_east_option[loc]);
+	}
+
+	if (LUT_location_permissions[loc] & KEY1) {
+		// South
+		VGA_south_arrow();
+		VGA_text(SOUTH_MSG_BASE_X, SOUTH_MSG_BASE_Y, LUT_loc_south_option[loc]);
+	}
+
+	if (LUT_location_permissions[loc] & KEY3) {
+		// West
+		VGA_west_arrow();
+		VGA_text(WEST_MSG_BASE_X, WEST_MSG_BASE_Y, LUT_loc_west_option[loc]);
+	}
+
+}
 
 /* Definition of Tasks */
 
