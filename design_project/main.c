@@ -508,8 +508,11 @@ void TaskMakeChoice(void* pdata) {
 		if ( (flags & GAME_ACTIVE) && (!(flags & GAME_NEW_LOCATION)) ) {
 			// ACTIVE state (NOT rendering new location, i.e. taking input)
 
+
 			// TODO - add edge cases for "action spots"
 				// Before checking for regular locations? Probably
+				// Will also need to add special cases w/ in these following (< 80) cases
+				// which will move from a regular spot to an action spot
 			if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
 				// KEY0 press - Typically means go East (rightwards)
 				KEY0_flag = 0;
