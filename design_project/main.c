@@ -279,6 +279,21 @@ void VGA_text_clear() {
 	}
 }
 
+void VGA_clear_timers() {
+	// Clear chunk of VGA screen dedicated to displaying the time remaining
+	// Chunk: bottom-right corner of VGA character buffer (8x4)
+	int x, y, offset;
+	volatile char *character_buffer = (char *) 0x09000000;   // VGA character buffer
+
+	for (x = 72; x < 80; x++) {
+		for (y = 56; y < 60; y++) {
+			*(character_buffer + offset) = ' ';   // write to the character buffer
+			offset = (y << 7) + x;
+		}
+	}
+}
+
+
 void VGA_north_arrow() {
 	// draws a north (upwards) facing arrow
 	int x_base = 150;
@@ -416,8 +431,8 @@ void TaskStartScreen(void* pdata) {
 		step_count = 0;
 		time_250ms = 0;
     step_time_rem_SS = 30;
-    tot_time_rem_SS = 0;
-    tot_time_rem_MM = 0;
+    tot_time_rem_SS = 9;
+    tot_time_rem_MM = 59;
 		tot_time_SS = 0;
 		tot_time_MM = 0;
 
@@ -427,13 +442,13 @@ void TaskStartScreen(void* pdata) {
 		// display initial question
 		VGA_text(QUESTION_BASE_X, QUESTION_BASE_Y, LUT_location_question[location]);
 
-		// TEST TODO - DISPLAYING ARROWS
+		// TODO: TEST DISPLAYING ARROWS
 		VGA_north_arrow();
 		VGA_south_arrow();
 		VGA_east_arrow();
 		VGA_west_arrow();
 
-		// Wait until game is reset until idling again
+		// Wait until game is reset until reseting & idling again
 		value = OSFlagPend(GameStatus, GAME_RESET, OS_FLAG_WAIT_SET_ANY + OS_FLAG_CONSUME, 0, &err);
 
 		OSTimeDly(4);
@@ -572,14 +587,12 @@ void TaskStopwatch(void* pdata) {
 
 	while(1) {
 
-		// blocking delay until game is activated (to prevent useless processing in IDLE state)
+		// pend until game is activated (to prevent useless processing in IDLE state)
 		value = OSFlagPend(GameStatus, GAME_ACTIVE, OS_FLAG_WAIT_SET_ALL, 0, &err);
-/*
-int step_time_rem_SS = 30;
-int tot_time_rem_SS = 59;
-int tot_time_rem_MM = 9;
-int tot_time_SS, tot_time_MM;
-*/
+
+		// pend if any non-active states (LOST, RESET, FINISHED) are high
+		value = OSFlagPend(GameStatus, GAME_LOST+GAME_RESET+GAME_FINISHED, OS_FLAG_WAIT_CLR_ALL, 0, &err);
+
 		time_250ms++;
 		if (time_250ms >= 4) {
 			time_250ms = 0;
@@ -602,8 +615,8 @@ int tot_time_SS, tot_time_MM;
 			if (step_time_rem_SS > 0) {
 				step_time_rem_SS--;
 			} else {
-				// TODO - change to "GAME_LOST"
-				value = OSFlagPost(GameStatus, GAME_RESET, OS_FLAG_SET, &err);
+				// SS are zero -> game over!
+				value = OSFlagPost(GameStatus, GAME_LOST, OS_FLAG_SET, &err);
 			}
 
 			// counter for total game time remaining
@@ -618,21 +631,19 @@ int tot_time_SS, tot_time_MM;
 
 				} else {
 					// MM & SS are zero -> game over!
-					// TODO - change to "GAME_LOST"
 					value = OSFlagPost(GameStatus, GAME_LOST, OS_FLAG_SET, &err);
 				}
 			}
 
 		}
 
-		// Send time remaining to taskDispRemTime
+		// Send step time remaining to taskDispRemTime
 		char step_time_rem_SS_char[VGA_TEXT_MAX_SIZE];
 		sprintf(step_time_rem_SS_char, "%.2ds", step_time_rem_SS);
 
 		OSMboxPost(MBoxRemTime, (void *)&step_time_rem_SS_char[0]);
 
-
-		OSTimeDly(1);
+		OSTimeDly(2);
 
 	}
 }
@@ -642,20 +653,27 @@ void TaskDispNewLocation(void* pdata) {
 	// Displays options & relevant text based on the current location
 
 	while(1) {
-		value = OSFlagPend(GameStatus, GAME_ACTIVE, OS_FLAG_WAIT_SET_ALL, 0, &err);
 
+		// Wait for game to be active, and for a new location to render. consumer new location flag
+		value = OSFlagPend(GameStatus, GAME_ACTIVE, OS_FLAG_WAIT_SET_ALL, 0, &err);
 		value = OSFlagPend(GameStatus, GAME_NEW_LOCATION, OS_FLAG_WAIT_SET_ALL + OS_FLAG_CONSUME, 0, &err);
+
+		step_count++;
 
 		OSSemPend(LocSem, 0, &err);
 
+		// Clear VGA before displaying new location
+	  VGA_clear();
+	  VGA_text_clear();
+
 		// display message based on current (new) location
-		////VGA_text(MSG_BASE_X, MSG_BASE_Y, LUT_location_msg[location]);
+		VGA_text(MSG_BASE_X, MSG_BASE_Y, LUT_location_msg[location]);
 
 		// display question based on current (new) location
-		////VGA_text(QUESTION_BASE_X, QUESTION_BASE_Y, LUT_location_question[location]);
+		VGA_text(QUESTION_BASE_X, QUESTION_BASE_Y, LUT_location_question[location]);
 
 		// display options based on current (new) location
-		////VGA_disp_options(location);
+		VGA_disp_options(location);
 
 		OSSemPost(LocSem);
 
@@ -668,31 +686,27 @@ void TaskDispRemTime(void* pdata) {
 	// displays time remaining (for entire game, and each step)
 	char *time_msg; // to receive MBoxRemTime from stopwatch
 
-	OS_FLAGS flags;
-
 	while(1) {
 
-		// blocking delay until game is activated (to prevent useless processing in IDLE state)
+		// pend until game is activated (to prevent useless processing in IDLE state)
 		value = OSFlagPend(GameStatus, GAME_ACTIVE, OS_FLAG_WAIT_SET_ALL, 0, &err);
 
-		// non-blocking delay ensuring game is active and in play mode
-		flags = OSFlagQuery(GameStatus, &err);
+		// pend if any non-active states (LOST, RESET, FINISHED) are high
+		value = OSFlagPend(GameStatus, GAME_LOST+GAME_RESET+GAME_FINISHED, OS_FLAG_WAIT_CLR_ALL, 0, &err);
 
-		if ( (flags & GAME_ACTIVE) && (!(flags & GAME_FINISHED))) {
+		// receive msg from MBoxRemTime (from taskStopwatch) - Pend until it's ready
+		time_msg = (char *)OSMboxPend(MBoxRemTime, 0 , &err);
 
-			// receive msg from MBoxRemTime (from taskStopwatch) - Pend until it's ready
-			time_msg = (char *)OSMboxPend(MBoxRemTime, 0 , &err);
+		if (err == OS_ERR_NONE) {
+			// No error; display remaining time
+			// TODO: Display Remaining Step Time
 
-			if (err == OS_ERR_NONE) {
-				// No error; display remaining time
-
-			} else {
-				// Error on receiving msg
-				int current_time = OSTimeGet();
-				printf("%d: Error on Receiving MBoxRemTime via OSMboxPend in TaskDispRemTime\n", current_time);
-			}
-
+		} else {
+			// Error on receiving msg
+			int current_time = OSTimeGet();
+			printf("%d: Error on Receiving MBoxRemTime via OSMboxPend in TaskDispRemTime\n", current_time);
 		}
+
 
 		OSTimeDly(4);
 
