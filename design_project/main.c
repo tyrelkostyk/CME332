@@ -23,16 +23,16 @@
 #define QUESTION_BASE_Y				20
 
 // TODO: Update values
-#define NORTH_MSG_BASE_X			30
-#define NORTH_MSG_BASE_Y			30
+#define NORTH_MSG_BASE_X			31
+#define NORTH_MSG_BASE_Y			27
 
-#define EAST_MSG_BASE_X				47
+#define EAST_MSG_BASE_X				50
 #define EAST_MSG_BASE_Y				47
 
-#define SOUTH_MSG_BASE_X			30
-#define SOUTH_MSG_BASE_Y			55
+#define SOUTH_MSG_BASE_X			31
+#define SOUTH_MSG_BASE_Y			57
 
-#define WEST_MSG_BASE_X				17
+#define WEST_MSG_BASE_X				14
 #define WEST_MSG_BASE_Y				47
 
 int KEY_val, SW_val;
@@ -179,7 +179,7 @@ const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"Test msg loc 36",		// Loc 30
 };
 
-// lut for the question to ask at each location
+// lut for the main question to ask at each location
 const char LUT_location_question [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
   "You fumble around in the dark and find a candle, and some matchsticks. Will    you light the canlde & begin your journey?",  // Loc 0: Start screen
 	"Continue forward?",  // Loc 1
@@ -214,6 +214,7 @@ const char LUT_location_question [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"Test q loc 36",		// Loc 30
 };
 
+// TODO: modify directional options to be more "fluid" yeno
 // lut for the text associated with the North option (if applicable)
 const char LUT_loc_north_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	" ",								// Loc 0: Start screen (no north option)
@@ -225,14 +226,14 @@ const char LUT_loc_north_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	" ",								// Loc 6: no north option
 	" ",								// Loc 7: no north option
 	" ",								// Loc 8: no north option
-	" ",								// Loc 9: no north option
+	" ",								// Loc 9: no north option (invalid spot)
 	" ",								// Loc 10: no north option
 	" ",								// Loc 11: no north option
 	" ",								// Loc 12: no north option
 	" ",								// Loc 13: no north option
 	" ",								// Loc 14: no north option
 	"KEY2: Go North",		// Loc 15
-	" ",								// Loc 16: no north option
+	" ",								// Loc 16: no north option (invalid spot)
 	"KEY2: Go North",		// Loc 17
 	" ",								// Loc 18: no north option
 	"KEY2: Go North",		// Loc 19
@@ -243,6 +244,15 @@ const char LUT_loc_north_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"KEY2: Go North",		// Loc 24
 	" ",								// Loc 25: no north option
 	"KEY2: Go North",		// Loc 26
+	"KEY2: Go North",		// Loc 27
+	"KEY2: Go North",		// Loc 28
+	" ",								// Loc 29: no north option
+	" ",								// Loc 30: no north option
+	" ",								// Loc 31: no north option
+	" ",								// Loc 32: no north option
+	"KEY2: Go North",		// Loc 33
+	" ",								// Loc 34: no north option (invalid spot)
+	" ",								// Loc 35: no north option
 };
 
 // lut for the text associated with the East option (if applicable)
@@ -255,39 +265,115 @@ const char LUT_loc_east_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"KEY0: Continue East",				// Loc 5
 	"KEY0: Continue East",				// Loc 6
 	"KEY0: Continue East",				// Loc 7
-	" ",				// Loc 8: no east option
-	" ",				// Loc 9: no east option
-	" ",				// Loc 10: no east option
+	" ",								// Loc 8: no east option
+	" ",								// Loc 9: no east option (invalid spot)
+	" ",								// Loc 10: no east option
+	"KEY0: Go East",		// Loc 11
+	" ",								// Loc 12: no east option
+	"KEY0: Go East",		// Loc 13
+	" ",								// Loc 14: no east option
+	" ",								// Loc 15: no east option
+	" ",								// Loc 16: no east option (invalid spot)
+	" ",								// Loc 17: no east option
+	"KEY0: Go East",		// Loc 18
+	"KEY0: Go East",		// Loc 19
+	" ",								// Loc 20: no east option
+	"KEY0: Go East",		// Loc 21
+	" ",								// Loc 22: no east option
+	"KEY0: Go East",		// Loc 23
+	"KEY0: Go East",		// Loc 24
+	"KEY0: Go East",		// Loc 25
+	" ",								// Loc 26: no east option
+	" ",								// Loc 27: no east option
+	"KEY0: Go East",		// Loc 28
+	"KEY0: Go East",		// Loc 29
+	"KEY0: Go East",		// Loc 30
+	"KEY0: Go East",		// Loc 31
+	" ",								// Loc 32: no east option
+	" ",								// Loc 33: no east option
+	" ",								// Loc 34: no east option (invalid spot)
+	" ",								// Loc 35: no east option
+	" ",								// Loc 36: no east option
 };
 
 // lut for the text associated with the South option (if applicable)
 const char LUT_loc_south_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
-	" ",			// Loc 0: Start screen (no south option)
-	" ",			// Loc 1: no south option
-	" ",			// Loc 2: no south option
-	" ",			// Loc 3: no south option
-	" ",			// Loc 4: no south option
-	" ",			// Loc 5: no south option
-	"KEY1: Go South",			// Loc 6
-	" ",			// Loc 7: no south option
-	" ",			// Loc 8
-	" ",			// Loc 9: no south option
+	" ",								// Loc 0: Start screen (no south option)
+	" ",								// Loc 1: no south option
+	" ",								// Loc 2: no south option
+	" ",								// Loc 3: no south option
+	" ",								// Loc 4: no south option
+	" ",								// Loc 5: no south option
+	"KEY1: Go South",		// Loc 6
+	" ",								// Loc 7: no south option
+	"KEY1: Go South",		// Loc 8
+	" ",								// Loc 9: no south option (invalid spot)
+	"KEY1: Go South",		// Loc 10
+	"KEY1: Go South",		// Loc 11
+	"KEY1: Go South",		// Loc 12
+	"KEY1: Go South",		// Loc 13
+	"KEY1: Go South",		// Loc 14
+	"KEY1: Go South",		// Loc 15
+	" ",								// Loc 16: no south option (invalid spot)
+	"KEY1: Go South",		// Loc 17
+	"KEY1: Go South",		// Loc 18
+	"KEY1: Go South",		// Loc 19
+	" ",								// Loc 20: no south option
+	" ",								// Loc 21: no south option
+	" ",								// Loc 22: no south option
+	" ",								// Loc 23: no south option
+	"KEY1: Go South",		// Loc 24
+	" ",								// Loc 25: no south option
+	" ",								// Loc 26: no south option
+	"KEY1: Go South",		// Loc 27
+	" ",								// Loc 28: no south option
+	" ",								// Loc 29: no south option
+	" ",								// Loc 30: no south option
+	" ",								// Loc 31: no south option
+	" ",								// Loc 32: no south option
+	"KEY1: Go South",		// Loc 33
+	" ",								// Loc 34: no south option (invalid spot)
+	"KEY1: Go South",		// Loc 35
 };
 
 // lut for the text associated with the West option (if applicable)
 const char LUT_loc_west_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
-	" ",			// Loc 0: Start screen (no west option)
-	" ",			// Loc 1: no west option
-	" ",			// Loc 2: no west option
-	" ",			// Loc 3: no west option
-	" ",			// Loc 4: no west option
-	" ",			// Loc 5: no west option
-	" ",			// Loc 6: no west option
-	" ",			// Loc 7
-	" ",			// Loc 8
-	" ",			// Loc 9: no west option
-	" ",			// Loc 10: no west option
-	" ",			// Loc 11: no west option
+	" ",								// Loc 0: Start screen (no west option)
+	" ",								// Loc 1: no west option
+	" ",								// Loc 2: no west option
+	" ",								// Loc 3: no west option
+	" ",								// Loc 4: no west option
+	" ",								// Loc 5: no west option
+	" ",								// Loc 6: no west option
+	"KEY1: Go West",		// Loc 7
+	"KEY1: Go West",		// Loc 8
+	" ",								// Loc 9: no west option (invalid spot)
+	" ",								// Loc 10: no west option
+	" ",								// Loc 11: no west option
+	"KEY1: Go West",		// Loc 12
+	" ",								// Loc 13: no west option
+	"KEY1: Go West",		// Loc 14
+	" ",								// Loc 15: no west option
+	" ",								// Loc 16: no west option (invalid spot)
+	" ",								// Loc 17: no west option
+	" ",								// Loc 18: no west option
+	"KEY1: Go West",		// Loc 19
+	"KEY1: Go West",		// Loc 20
+	" ",								// Loc 21: no west option
+	"KEY1: Go West",		// Loc 22
+	" ",								// Loc 23: no west option
+	"KEY1: Go West",		// Loc 24
+	"KEY1: Go West",		// Loc 25
+	"KEY1: Go West",		// Loc 26
+	" ",								// Loc 27: no west option
+	" ",								// Loc 28: no west option
+	"KEY1: Go West",		// Loc 29
+	"KEY1: Go West",		// Loc 30
+	"KEY1: Go West",		// Loc 31
+	"KEY1: Go West",		// Loc 32
+	" ",								// Loc 33: no west option
+	" ",								// Loc 34: no west option (invalid spot)
+	" ",								// Loc 35: no west option
 };
 
 /* Definition of Semaphores & Mailboxes */
@@ -538,7 +624,7 @@ void TaskStartScreen(void* pdata) {
 		srand(seed_val);
 
 		// Reset Global Game Vars
-		location = 0;
+		location = 24;
 		step_count = 0;
 		time_250ms = 0;
     step_time_rem_SS = 300;		// TODO: change back
