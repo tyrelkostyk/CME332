@@ -92,7 +92,7 @@ const char LUT_location_permissions [MAX_LOCATIONS] = {
 	KEY0+KEY3,								// Loc 39: East, West
 	KEY0+KEY3,								// Loc 40: East, West
 	KEY0,											// Loc 41: East
-	KEY0+KEY1+KEY2++KEY3,			// Loc 42: All directions
+	KEY0+KEY1+KEY2+KEY3,			// Loc 42: All directions
 	KEY0+KEY3,								// Loc 43: East, West
 	KEY1+KEY2+KEY3,						// Loc 44: North, South, West
 	KEY1+KEY2,								// Loc 45: North, South
@@ -132,27 +132,16 @@ const char LUT_location_permissions [MAX_LOCATIONS] = {
 	0,												// Loc 79: Not a valid spot
 	KEY2,											// Loc 80: North
 			// ACTION SPOTS
-	,											// Loc 81:
-	,											// Loc 82:
-	,											// Loc 83:
-	,											// Loc 84:
-	,											// Loc 85:
-	,											// Loc 86:
-	,											// Loc 87:
-	,											// Loc 88:
-	,											// Loc 89:
-	,											// Loc 90:
-	,											// Loc 91:
-	,											// Loc 92:
-	,											// Loc 93:
-	,											// Loc 94:
-	,											// Loc 95:
-	,											// Loc 96:
-	,											// Loc 97:
-	,											// Loc 98:
-	,											// Loc 99:
-
-
+	KEY0+KEY1,								// 81; Action spot for Loc 6 (first time only): East, South
+	KEY3,											// 82; Action spot for Loc 32 (always, after investigating): West
+	KEY1+KEY2,								// 83; 1st Action spot for Loc 35 (first time only): North(pick up), South(leave)
+	KEY1,											// 84; 2nd Action spot for Loc 35 (after pick up only): South(leave)
+	KEY2+KEY3,								// 85; 1st Action spot for Loc 40 (first time only): North(fight), west(run)
+	KEY2,											// 86; 2nd Action spot for Loc 40 (fight & win only): North(investigate)
+	KEY0+KEY1,								// 87; 3rd Action spot for Loc 40 (fight & win only, after investigate): East(secret exit), West
+	KEY3,											// 88; 1st Action spot for Loc 39 (after running only, once): West (keep running!)
+	KEY1,											// 89; Action spot for Loc 50 (only after fighting & taking secret exit): South
+	KEY1,											// 90; Action spot for Loc 72 (Only after getting key): South (to win!)
 };
 
 // lut for what message to display at each location
@@ -414,9 +403,9 @@ void VGA_disp_options(int loc) {
 /* Definition of Tasks */
 
 void TaskStartScreen(void* pdata) {
-	// Initial task
+	// Initial (Idle) task
 	// Needs to stay until KEY0 is pressed
-	// Can only run in idle state; then once started, pends until GAME_RESET is high
+	// Can only run in idle state; then after running once, pends until GAME_RESET is high
 
 	int seed_val = OSTimeGet(); // for random number generation
 
@@ -425,7 +414,7 @@ void TaskStartScreen(void* pdata) {
 		// Don't run until active / finished states are completed/inactive
 		value = OSFlagPend(GameStatus, GAME_ACTIVE + GAME_FINISHED, OS_FLAG_WAIT_CLR_ALL, 0, &err);
 
-		// increment seed_val, reseed program
+		// increment seed_val, reseed program for rand var
 		seed_val = OSTimeGet();
 		srand(seed_val);
 
@@ -514,8 +503,8 @@ void TaskMakeChoice(void* pdata) {
 
 			// TODO - add edge cases for "action spots"
 				// Before checking for regular locations? Probably
-				// Will also need to add special cases w/ in these following (< 80) cases
-				// which will move from a regular spot to an action spot
+					// Will also need to add special cases to the regular (< 80) cases,
+					// which will move player from a regular spot to an action spot
 			if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
 				// KEY0 press - Typically means go East (rightwards)
 				KEY0_flag = 0;
@@ -587,9 +576,7 @@ void TaskMakeChoice(void* pdata) {
 
 
 void TaskStopwatch(void* pdata) {
-	// Needs ACTIVE state & PLAY state to run
-
-	OS_FLAGS flags;
+	// Needs ACTIVE state to run
 
 	while(1) {
 
@@ -676,6 +663,9 @@ void TaskDispNewLocation(void* pdata) {
 		step_count++;
 
 		OSSemPend(LocSem, 0, &err);
+
+		int current_time = OSTimeGet();
+		printf("%d: TaskDispRemTime || Location: %d || Step Count: %2\n", current_time, location, step_count);
 
 		// Clear VGA before displaying new location
 	  VGA_clear();
