@@ -153,7 +153,7 @@ const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"Finally, the hallway ends. It's a simple wooden door, with a latch on it.",		// Loc 5
 	"Test msg loc 6",			// Loc 6
 	"Test msg loc 7",			// Loc 7
-	"Test msg loc 8",			// Loc 8
+	"You're in a corner, behind a moldy pillar. You hear something scratching       from the inside...",			// Loc 8
 	"Error: Loc 9 is an invalid location",		// Loc 9 (not a valid spot)
 	"Test msg loc 10",		// Loc 10
 	"Test msg loc 11",		// Loc 11
@@ -188,7 +188,7 @@ const char LUT_location_question [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"Unlatch the door and continue forward?",  // Loc 5
 	"Continue forward?",  // Loc 6
 	"Continue forward?",  // Loc 7
-	"You're in a corner, behind a moldy pillar.",	 // Loc 8
+	"Which direction will you go?",	 // Loc 8
 	" ",								// Loc 9 (invalid spot)
 	"Test q loc 10",		// Loc 10
 	"Test q loc 11",		// Loc 11
@@ -262,8 +262,8 @@ const char LUT_loc_east_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"KEY0: Continue East",				// Loc 3
 	"KEY0: Continue East",				// Loc 4
 	"KEY0: Continue East",				// Loc 5
-	"KEY0: Continue East",				// Loc 6
-	"KEY0: Continue East",				// Loc 7
+	"KEY0: Go East",		// Loc 6
+	"KEY0: Go East",		// Loc 7
 	" ",								// Loc 8: no east option
 	" ",								// Loc 9: no east option (invalid spot)
 	" ",								// Loc 10: no east option
@@ -601,8 +601,8 @@ void VGA_disp_options(int loc) {
 		VGA_west_arrow();
 		VGA_text(WEST_MSG_BASE_X, WEST_MSG_BASE_Y, LUT_loc_west_option[loc]);
 	}
-
 }
+
 
 /* Definition of Tasks */
 
@@ -623,7 +623,7 @@ void TaskStartScreen(void* pdata) {
 		srand(seed_val);
 
 		// Reset Global Game Vars
-		location = 24;
+		location = 0;
 		step_count = 0;
 		time_250ms = 0;
     step_time_rem_SS = 300;		// TODO: change back
@@ -911,6 +911,8 @@ void TaskDispRemTime(void* pdata) {
 		if (err == OS_ERR_NONE) {
 			// No error; display remaining step time
 			// TODO: Display Remaining Step Time
+			VGA_text(3, 52, "Step Time Remaining");
+			VGA_text(3, 54, step_time_msg);
 
 		} else {
 			// Error on receiving msg
@@ -924,6 +926,8 @@ void TaskDispRemTime(void* pdata) {
 		if (err == OS_ERR_NONE) {
 			// No error; display remaining total time
 			// TODO: Display Remaining Total Time
+			VGA_text(55, 52, "Total Time Remaining");
+			VGA_text(55, 54, tot_time_msg);
 
 		} else {
 			// Error on receiving msg
