@@ -189,7 +189,8 @@ const char LUT_loc_west_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 /* Definition of Semaphores & Mailboxes */
 
 OS_EVENT	*LocSem;
-OS_EVENT	*MBoxRemTime;
+OS_EVENT	*MBoxRemStepTime;
+OS_EVENT	*MBoxRemTotTime;
 INT8U 		err;
 
 /* Definition of Event Flags */
@@ -640,11 +641,20 @@ void TaskStopwatch(void* pdata) {
 
 		}
 
+
 		// Send step time remaining to taskDispRemTime
 		char step_time_rem_SS_char[VGA_TEXT_MAX_SIZE];
 		sprintf(step_time_rem_SS_char, "%.2ds", step_time_rem_SS);
 
-		OSMboxPost(MBoxRemTime, (void *)&step_time_rem_SS_char[0]);
+		OSMboxPost(MBoxRemStepTime, (void *)&step_time_rem_SS_char[0]);
+
+
+		// Send total time remaining to taskDispRemTime (in MM:SS format)
+		char tot_time_rem_MMSS_char[VGA_TEXT_MAX_SIZE];
+		sprintf(tot_time_rem_MMSS_char, "%.2d:%.2d", tot_time_rem_MM, tot_time_rem_SS);
+
+		OSMboxPost(MBoxRemTotTime, (void *)&tot_time_rem_MMSS_char[0]);
+
 
 		OSTimeDly(2);
 
@@ -687,7 +697,8 @@ void TaskDispNewLocation(void* pdata) {
 
 void TaskDispRemTime(void* pdata) {
 	// displays time remaining (for entire game, and each step)
-	char *time_msg; // to receive MBoxRemTime from stopwatch
+	char *step_time_msg; 	// to receive MBoxRemStepTime from stopwatch
+	char *tot_time_msg; 	// to receive MBoxRemTotTime from stopwatch
 
 	while(1) {
 
@@ -697,19 +708,30 @@ void TaskDispRemTime(void* pdata) {
 		// pend if any non-active states (LOST, RESET, FINISHED) are high
 		value = OSFlagPend(GameStatus, GAME_LOST+GAME_RESET+GAME_FINISHED, OS_FLAG_WAIT_CLR_ALL, 0, &err);
 
-		// receive msg from MBoxRemTime (from taskStopwatch) - Pend until it's ready
-		time_msg = (char *)OSMboxPend(MBoxRemTime, 0 , &err);
-
+		// receive msg from MBoxRemStepTime (from taskStopwatch) - Pend until it's ready
+		step_time_msg = (char *)OSMboxPend(MBoxRemStepTime, 0 , &err);
 		if (err == OS_ERR_NONE) {
-			// No error; display remaining time
+			// No error; display remaining step time
 			// TODO: Display Remaining Step Time
 
 		} else {
 			// Error on receiving msg
 			int current_time = OSTimeGet();
-			printf("%d: Error on Receiving MBoxRemTime via OSMboxPend in TaskDispRemTime\n", current_time);
+			printf("%d: Error on Receiving MBoxRemStepTime via OSMboxPend in TaskDispRemTime\n", current_time);
 		}
 
+
+		// receive msg from MBoxRemTotTime (from taskStopwatch) - Pend until it's ready
+		tot_time_msg = (char *)OSMboxPend(MBoxRemTotTime, 0 , &err);
+		if (err == OS_ERR_NONE) {
+			// No error; display remaining total time
+			// TODO: Display Remaining Total Time
+
+		} else {
+			// Error on receiving msg
+			int current_time = OSTimeGet();
+			printf("%d: Error on Receiving MBoxRemTotTime via OSMboxPend in TaskDispRemTime\n", current_time);
+		}
 
 		OSTimeDly(4);
 
@@ -725,12 +747,16 @@ void TaskDispResults(void* pdata) {
 		// blocking delay until game is finished (to prevent useless processing in IDLE state)
 		value = OSFlagPend(GameStatus, GAME_FINISHED, OS_FLAG_WAIT_SET_ALL, 0, &err);
 
-		// Receive the total elapsed time value from TaskStopwatch, display on top row of LCD
+		// Clear VGA before displaying winning results
+	  VGA_clear();
+	  VGA_text_clear();
 
-		// Display total score & elapsed time global vars
+		// Display total steps & elapsed time global vars
+		// TODO: Finish code to display results on VGA
 		char tot_time_MMSS_msg[VGA_TEXT_MAX_SIZE];
 		sprintf(tot_time_MMSS_msg, "%.2d:%.2d", tot_time_MM, tot_time_SS);
 
+		// TODO: Display option (south?) to reset game (to start screen)
 
 		// after running once, wait until a new game is started (and finished)
 		value = OSFlagPend(GameStatus, GAME_RESET, OS_FLAG_WAIT_SET_ALL, 0, &err);
@@ -812,7 +838,8 @@ int main(void)
 
   LocSem = OSSemCreate(1);
 
-  MBoxRemTime = OSMboxCreate((void *)0);
+  MBoxRemStepTime = OSMboxCreate((void *)0);	// Mbox for remaining time each step
+	MBoxRemTotTime = OSMboxCreate((void *)0);		// Mbox for total remaining game time
 
   GameStatus = OSFlagCreate(0x00, &err);
 
