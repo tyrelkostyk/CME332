@@ -23,17 +23,17 @@
 #define QUESTION_BASE_Y				20
 
 // TODO: Update values
-#define NORTH_MSG_BASE_X			230
-#define NORTH_MSG_BASE_Y			140
+#define NORTH_MSG_BASE_X			30
+#define NORTH_MSG_BASE_Y			30
 
-#define EAST_MSG_BASE_X				230
-#define EAST_MSG_BASE_Y				140
+#define EAST_MSG_BASE_X				47
+#define EAST_MSG_BASE_Y				47
 
-#define SOUTH_MSG_BASE_X			230
-#define SOUTH_MSG_BASE_Y			140
+#define SOUTH_MSG_BASE_X			30
+#define SOUTH_MSG_BASE_Y			55
 
-#define WEST_MSG_BASE_X				70
-#define WEST_MSG_BASE_Y				140
+#define WEST_MSG_BASE_X				17
+#define WEST_MSG_BASE_Y				47
 
 int KEY_val, SW_val;
 int KEY0_flag, KEY1_flag, KEY2_flag, KEY3_flag;
@@ -41,7 +41,7 @@ int KEY0_flag, KEY1_flag, KEY2_flag, KEY3_flag;
 int location, step_count;
 
 int time_250ms;
-int step_time_rem_SS = 30;
+int step_time_rem_SS;
 int tot_time_rem_SS, tot_time_rem_MM;
 int tot_time_SS, tot_time_MM;
 
@@ -146,33 +146,148 @@ const char LUT_location_permissions [MAX_LOCATIONS] = {
 
 // lut for what message to display at each location
 const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
-  "You awake in a pitch black room of cold, hard stone. You hear an oddly         familiar growl in the distance...",  // loc 0: Start Screen
-
+  "You awake in a pitch black room of cold, hard stone. You hear an oddly         familiar growl in the distance...",  			// Loc 0: Start Screen
+	"You continue down a dark hallway, the faint sound of dripping ahead.           The only way to go is forward.",  				// Loc 1
+	"The hallway continues, no end in sight. The dripping gets louder...            In the distance, you hear footsteps...",	// Loc 2
+	"You continue, the footsteps stop abruptly. A dark tar-like substance is        dripping into a puddle beside you.",			// Loc 3
+	"Further along the hallway, you notice how hot you are. There must be a         furnace nearby.",													// loc 4
+	"Finally, the hallway ends. It's a simple wooden door, with a latch on it.",		// Loc 5
+	"Test msg loc 6",			// Loc 6
+	"Test msg loc 7",			// Loc 7
+	"Test msg loc 8",			// Loc 8
+	"Error: Loc 9 is an invalid location",		// Loc 9 (not a valid spot)
+	"Test msg loc 10",		// Loc 10
+	"Test msg loc 11",		// Loc 11
+	"Test msg loc 12",		// Loc 12
+	"Test msg loc 13",		// Loc 13
+	"Test msg loc 14",		// Loc 14
+	"Test msg loc 15",		// Loc 15
+	"Error: Loc 16 is an invalid location",		// Loc 16 (not a valid spot)
+	"Test msg loc 17",		// Loc 17
+	"Test msg loc 18",		// Loc 18
+	"Test msg loc 19",		// Loc 19
+	"Test msg loc 20",		// Loc 20
+	"Test msg loc 21",		// Loc 21
+	"Test msg loc 22",		// Loc 22
+	"Test msg loc 23",		// Loc 23
+	"Test msg loc 24",		// Loc 24
+	"Test msg loc 25",		// Loc 25
+	"Test msg loc 26",		// Loc 26
+	"Test msg loc 27",		// Loc 27
+	"Test msg loc 28",		// Loc 28
+	"Test msg loc 29",		// Loc 29
+	"Test msg loc 36",		// Loc 30
 };
 
 // lut for the question to ask at each location
 const char LUT_location_question [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
-  "You fumble around in the dark and find a candle, and some matchsticks. Will    you light the canlde & begin your journey?"  // Loc 0: Start screen
+  "You fumble around in the dark and find a candle, and some matchsticks. Will    you light the canlde & begin your journey?",  // Loc 0: Start screen
+	"Continue forward?",  // Loc 1
+	"Continue forward?",  // Loc 2
+	"Continue forward?",  // Loc 3
+	"Continue forward?",  // Loc 4
+	"Unlatch the door and continue forward?",  // Loc 5
+	"Continue forward?",  // Loc 6
+	"Continue forward?",  // Loc 7
+	"You're in a corner, behind a moldy pillar.",	 // Loc 8
+	" ",								// Loc 9 (invalid spot)
+	"Test q loc 10",		// Loc 10
+	"Test q loc 11",		// Loc 11
+	"Test q loc 12",		// Loc 12
+	"Test q loc 13",		// Loc 13
+	"Test q loc 14",		// Loc 14
+	"Test q loc 15",		// Loc 15
+	" ",								// Loc 16 (invalid spot)
+	"Test q loc 17",		// Loc 17
+	"Test q loc 18",		// Loc 18
+	"Test q loc 19",		// Loc 19
+	"Test q loc 20",		// Loc 20
+	"Test q loc 21",		// Loc 21
+	"Test q loc 22",		// Loc 22
+	"Test q loc 23",		// Loc 23
+	"Test q loc 24",		// Loc 24
+	"Test q loc 25",		// Loc 25
+	"Test q loc 26",		// Loc 26
+	"Test q loc 27",		// Loc 27
+	"Test q loc 28",		// Loc 28
+	"Test q loc 29",		// Loc 29
+	"Test q loc 36",		// Loc 30
 };
 
 // lut for the text associated with the North option (if applicable)
 const char LUT_loc_north_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
-	" ",			// Loc 0: Start screen (no north option)
+	" ",								// Loc 0: Start screen (no north option)
+	" ",								// Loc 1: no north option
+	" ",								// Loc 2: no north option
+	" ",								// Loc 3: no north option
+	" ",								// Loc 4: no north option
+	" ",								// Loc 5: no north option
+	" ",								// Loc 6: no north option
+	" ",								// Loc 7: no north option
+	" ",								// Loc 8: no north option
+	" ",								// Loc 9: no north option
+	" ",								// Loc 10: no north option
+	" ",								// Loc 11: no north option
+	" ",								// Loc 12: no north option
+	" ",								// Loc 13: no north option
+	" ",								// Loc 14: no north option
+	"KEY2: Go North",		// Loc 15
+	" ",								// Loc 16: no north option
+	"KEY2: Go North",		// Loc 17
+	" ",								// Loc 18: no north option
+	"KEY2: Go North",		// Loc 19
+	"KEY2: Go North",		// Loc 20
+	"KEY2: Go North",		// Loc 21
+	"KEY2: Go North",		// Loc 22
+	"KEY2: Go North",		// Loc 23
+	"KEY2: Go North",		// Loc 24
+	" ",								// Loc 25: no north option
+	"KEY2: Go North",		// Loc 26
 };
 
 // lut for the text associated with the East option (if applicable)
 const char LUT_loc_east_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"KEY0: Start Journey...",			// Loc 0: Start screen
+	"KEY0: Continue East",				// Loc 1
+	"KEY0: Continue East",				// Loc 2
+	"KEY0: Continue East",				// Loc 3
+	"KEY0: Continue East",				// Loc 4
+	"KEY0: Continue East",				// Loc 5
+	"KEY0: Continue East",				// Loc 6
+	"KEY0: Continue East",				// Loc 7
+	" ",				// Loc 8: no east option
+	" ",				// Loc 9: no east option
+	" ",				// Loc 10: no east option
 };
 
 // lut for the text associated with the South option (if applicable)
 const char LUT_loc_south_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	" ",			// Loc 0: Start screen (no south option)
+	" ",			// Loc 1: no south option
+	" ",			// Loc 2: no south option
+	" ",			// Loc 3: no south option
+	" ",			// Loc 4: no south option
+	" ",			// Loc 5: no south option
+	"KEY1: Go South",			// Loc 6
+	" ",			// Loc 7: no south option
+	" ",			// Loc 8
+	" ",			// Loc 9: no south option
 };
 
 // lut for the text associated with the West option (if applicable)
 const char LUT_loc_west_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	" ",			// Loc 0: Start screen (no west option)
+	" ",			// Loc 1: no west option
+	" ",			// Loc 2: no west option
+	" ",			// Loc 3: no west option
+	" ",			// Loc 4: no west option
+	" ",			// Loc 5: no west option
+	" ",			// Loc 6: no west option
+	" ",			// Loc 7
+	" ",			// Loc 8
+	" ",			// Loc 9: no west option
+	" ",			// Loc 10: no west option
+	" ",			// Loc 11: no west option
 };
 
 /* Definition of Semaphores & Mailboxes */
@@ -320,17 +435,19 @@ void VGA_south_arrow() {
 		}
 	}
 
+	int row = 0;
 	// Draw the triangle
-	for (int y = y_base+19; y > (y_base+12); y--) {
-		for (int x = (x_base-(y-y_base)); x < (x_base+(y-y_base))+4; x++) {
+	for (int y = (y_base+21); y > (y_base+12); y--) {
+		for (int x = (x_base-(row))+1; x < (x_base+(row))+3; x++) {
 			VGA_pixel(x, y, pixel_color);
 		}
+		row++;
 	}
 }
 
 void VGA_east_arrow() {
 	// draws a east (right-wards) facing arrow
-	int x_base = 230;
+	int x_base = 212;
 	int y_base = 168;
 	short pixel_color = 0xFFFF;		// white
 
@@ -341,17 +458,19 @@ void VGA_east_arrow() {
 		}
 	}
 
+	int row = 0;
 	// Draw the triangle
 	for (int x = x_base+21; x > (x_base+12); x--) {
-		for (int y = (y_base-(x-x_base)); y < (y_base+(x-x_base))+4; y++) {
+		for (int y = (y_base-row)+1; y < (y_base+row)+3; y++) {
 			VGA_pixel(x, y, pixel_color);
 		}
+		row++;
 	}
 }
 
 void VGA_west_arrow() {
 	// draws a west (left-wards) facing arrow
-	int x_base = 70;
+	int x_base = 72;
 	int y_base = 168;
 	short pixel_color = 0xFFFF;		// white
 
@@ -374,12 +493,6 @@ void VGA_disp_options(int loc) {
 	// Draws arrows & prints messages next to those arrows based on current location
 
 	// Go through each direction and, if it's allowed, display the arrow & option msg
-	if (LUT_location_permissions[loc] & KEY2) {
-		// North
-		VGA_north_arrow();
-		VGA_text(NORTH_MSG_BASE_X, NORTH_MSG_BASE_Y, LUT_loc_north_option[loc]);
-	}
-
 	if (LUT_location_permissions[loc] & KEY0) {
 		// East
 		VGA_east_arrow();
@@ -390,6 +503,12 @@ void VGA_disp_options(int loc) {
 		// South
 		VGA_south_arrow();
 		VGA_text(SOUTH_MSG_BASE_X, SOUTH_MSG_BASE_Y, LUT_loc_south_option[loc]);
+	}
+
+	if (LUT_location_permissions[loc] & KEY2) {
+		// North
+		VGA_north_arrow();
+		VGA_text(NORTH_MSG_BASE_X, NORTH_MSG_BASE_Y, LUT_loc_north_option[loc]);
 	}
 
 	if (LUT_location_permissions[loc] & KEY3) {
@@ -422,9 +541,9 @@ void TaskStartScreen(void* pdata) {
 		location = 0;
 		step_count = 0;
 		time_250ms = 0;
-    step_time_rem_SS = 30;
-    tot_time_rem_SS = 9;
-    tot_time_rem_MM = 59;
+    step_time_rem_SS = 300;		// TODO: change back
+    tot_time_rem_SS = 59;
+    tot_time_rem_MM = 9;
 		tot_time_SS = 0;
 		tot_time_MM = 0;
 
@@ -434,11 +553,8 @@ void TaskStartScreen(void* pdata) {
 		// display initial question
 		VGA_text(QUESTION_BASE_X, QUESTION_BASE_Y, LUT_location_question[location]);
 
-		// TODO: TEST DISPLAYING ARROWS
-		VGA_north_arrow();
-		VGA_south_arrow();
-		VGA_east_arrow();
-		VGA_west_arrow();
+		// display start game msg & options
+		VGA_disp_options(location);
 
 		// Wait until game is reset until reseting & idling again
 		value = OSFlagPend(GameStatus, GAME_RESET, OS_FLAG_WAIT_SET_ANY + OS_FLAG_CONSUME, 0, &err);
@@ -493,6 +609,7 @@ void TaskMakeChoice(void* pdata) {
 
 			if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
 				KEY0_flag = 0;
+				location += 1;
 				value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_NEW_LOCATION, OS_FLAG_SET, &err);
 			}
 		}
@@ -510,6 +627,7 @@ void TaskMakeChoice(void* pdata) {
 				KEY0_flag = 0;
 				if (LUT_location_permissions[location] & KEY0) {
 					location += 1;		// increment place in map by 1
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
 				}
 
 			} else if ( !(KEY_val & KEY1) && (KEY1_flag) ) {
@@ -517,6 +635,7 @@ void TaskMakeChoice(void* pdata) {
 				KEY1_flag = 0;
 				if (LUT_location_permissions[location] & KEY1) {
 					location += 9;		// increment place in map by 9
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
 				}
 
 			} else if ( !(KEY_val & KEY2) && (KEY2_flag) ) {
@@ -524,6 +643,7 @@ void TaskMakeChoice(void* pdata) {
 				KEY2_flag = 0;
 				if (LUT_location_permissions[location] & KEY2) {
 					location -= 9;		// decrement place in map by 9
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
 				}
 
 			} else if ( !(KEY_val & KEY3) && (KEY3_flag) ) {
@@ -531,6 +651,7 @@ void TaskMakeChoice(void* pdata) {
 				KEY3_flag = 0;
 				if (LUT_location_permissions[location] & KEY3) {
 					location -= 1;		// decrement place in map by 1
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
 				}
 			}
 		}
@@ -665,7 +786,7 @@ void TaskDispNewLocation(void* pdata) {
 		OSSemPend(LocSem, 0, &err);
 
 		int current_time = OSTimeGet();
-		printf("%d: TaskDispRemTime || Location: %d || Step Count: %2\n", current_time, location, step_count);
+		printf("%d: TaskDispRemTime || Location: %d || Step Count: %d\n", current_time, location, step_count);
 
 		// Clear VGA before displaying new location
 	  VGA_clear();
