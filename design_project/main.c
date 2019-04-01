@@ -214,6 +214,7 @@ OS_STK    TaskStopwatch_stk[TASK_STACKSIZE];
 OS_STK    TaskDispNewLocation_stk[TASK_STACKSIZE];
 OS_STK    TaskDispRemTime_stk[TASK_STACKSIZE];
 OS_STK    TaskDispResults_stk[TASK_STACKSIZE];
+OS_STK    TaskDispGameOver_stk[TASK_STACKSIZE];
 
 
 /* Definition of Task Priorities */
@@ -223,7 +224,8 @@ OS_STK    TaskDispResults_stk[TASK_STACKSIZE];
 #define TASKDISPNEWLOCATION_PRIORITY	10
 #define TASKDISPREMTIME_PRIORITY    	11
 #define TASKDISPRESULTS_PRIORITY    	12
-#define TASKSTARTSCREEN_PRIORITY			13
+#define TASKDISPGAMEOVER_PRIORITY    	13
+#define TASKSTARTSCREEN_PRIORITY			14
 
 
 /* Supporting Functions */
@@ -751,8 +753,36 @@ void TaskDispResults(void* pdata) {
 	  VGA_clear();
 	  VGA_text_clear();
 
-		// Display total steps & elapsed time global vars
+		// Display total steps & elapsed time global vars (and "game won" msg)
 		// TODO: Finish code to display results on VGA
+		char tot_time_MMSS_msg[VGA_TEXT_MAX_SIZE];
+		sprintf(tot_time_MMSS_msg, "%.2d:%.2d", tot_time_MM, tot_time_SS);
+
+		// TODO: Display option (south?) to reset game (to start screen)
+
+		// after running once, wait until a new game is started (and finished)
+		value = OSFlagPend(GameStatus, GAME_RESET, OS_FLAG_WAIT_SET_ALL, 0, &err);
+
+		OSTimeDly(4);
+
+	}
+}
+
+
+void TaskDispGameOver(void* pdata) {
+	// Can only run in GAME_LOST state
+
+	while(1) {
+
+		// blocking delay until game is lost (to prevent useless processing in IDLE state)
+		value = OSFlagPend(GameStatus, GAME_LOST, OS_FLAG_WAIT_SET_ALL, 0, &err);
+
+		// Clear VGA before displaying losing results
+	  VGA_clear();
+	  VGA_text_clear();
+
+		// Display total steps & elapsed time global vars (and "you lost" msg)
+		// TODO: Finish code to display losing results on VGA
 		char tot_time_MMSS_msg[VGA_TEXT_MAX_SIZE];
 		sprintf(tot_time_MMSS_msg, "%.2d:%.2d", tot_time_MM, tot_time_SS);
 
@@ -821,6 +851,16 @@ int main(void)
   			          TASKDISPRESULTS_PRIORITY,
   			          TASKDISPRESULTS_PRIORITY,
   			          TaskDispResults_stk,
+                  TASK_STACKSIZE,
+                  NULL,
+                  0);
+
+	OSTaskCreateExt(TaskDispGameOver,
+                  NULL,
+                  (void *)&TaskDispGameOver_stk[TASK_STACKSIZE-1],
+  			          TASKDISPGAMEOVER_PRIORITY,
+  			          TASKDISPGAMEOVER_PRIORITY,
+  			          TaskDispGameOver_stk,
                   TASK_STACKSIZE,
                   NULL,
                   0);
