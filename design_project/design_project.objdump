@@ -1197,7 +1197,7 @@ Disassembly of section .text:
      56c:	df000704 	addi	fp,sp,28
      570:	00802584 	movi	r2,150
      574:	e0bffd15 	stw	r2,-12(fp)
-     578:	00801e04 	movi	r2,120
+     578:	00802404 	movi	r2,144
      57c:	e0bffe15 	stw	r2,-8(fp)
      580:	00bfffc4 	movi	r2,-1
      584:	e0bfff0d 	sth	r2,-4(fp)
@@ -1350,9 +1350,9 @@ Disassembly of section .text:
      7c0:	dfc00915 	stw	ra,36(sp)
      7c4:	df000815 	stw	fp,32(sp)
      7c8:	df000804 	addi	fp,sp,32
-     7cc:	00803504 	movi	r2,212
+     7cc:	00803004 	movi	r2,192
      7d0:	e0bffd15 	stw	r2,-12(fp)
-     7d4:	00802a04 	movi	r2,168
+     7d4:	00802d44 	movi	r2,181
      7d8:	e0bffe15 	stw	r2,-8(fp)
      7dc:	00bfffc4 	movi	r2,-1
      7e0:	e0bfff0d 	sth	r2,-4(fp)
@@ -1428,9 +1428,9 @@ Disassembly of section .text:
      8f0:	dfc00815 	stw	ra,32(sp)
      8f4:	df000715 	stw	fp,28(sp)
      8f8:	df000704 	addi	fp,sp,28
-     8fc:	00801204 	movi	r2,72
+     8fc:	00801704 	movi	r2,92
      900:	e0bffd15 	stw	r2,-12(fp)
-     904:	00802a04 	movi	r2,168
+     904:	00802d44 	movi	r2,181
      908:	e0bffe15 	stw	r2,-8(fp)
      90c:	00bfffc4 	movi	r2,-1
      910:	e0bfff0d 	sth	r2,-4(fp)
@@ -1521,8 +1521,8 @@ Disassembly of section .text:
      a5c:	10b3dd04 	addi	r2,r2,-12428
      a60:	1885883a 	add	r2,r3,r2
      a64:	100d883a 	mov	r6,r2
-     a68:	01400bc4 	movi	r5,47
-     a6c:	01000c84 	movi	r4,50
+     a68:	01400a44 	movi	r5,41
+     a6c:	01000b44 	movi	r4,45
      a70:	00003640 	call	364 <VGA_text>
      a74:	008000b4 	movhi	r2,2
      a78:	10b92c04 	addi	r2,r2,-6992
@@ -1557,7 +1557,7 @@ Disassembly of section .text:
      aec:	10a05504 	addi	r2,r2,-32428
      af0:	1885883a 	add	r2,r3,r2
      af4:	100d883a 	mov	r6,r2
-     af8:	014006c4 	movi	r5,27
+     af8:	01400844 	movi	r5,33
      afc:	010007c4 	movi	r4,31
      b00:	00003640 	call	364 <VGA_text>
      b04:	008000b4 	movhi	r2,2
@@ -1575,8 +1575,8 @@ Disassembly of section .text:
      b34:	109aed04 	addi	r2,r2,27572
      b38:	1885883a 	add	r2,r3,r2
      b3c:	100d883a 	mov	r6,r2
-     b40:	01400bc4 	movi	r5,47
-     b44:	01000384 	movi	r4,14
+     b40:	01400a44 	movi	r5,41
+     b44:	010004c4 	movi	r4,19
      b48:	00003640 	call	364 <VGA_text>
      b4c:	0001883a 	nop
      b50:	e037883a 	mov	sp,fp

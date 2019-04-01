@@ -22,18 +22,17 @@
 #define QUESTION_BASE_X				1
 #define QUESTION_BASE_Y				20
 
-// TODO: Update values
 #define NORTH_MSG_BASE_X			31
-#define NORTH_MSG_BASE_Y			27
+#define NORTH_MSG_BASE_Y			33
 
-#define EAST_MSG_BASE_X				50
-#define EAST_MSG_BASE_Y				47
+#define EAST_MSG_BASE_X				45
+#define EAST_MSG_BASE_Y				41
 
 #define SOUTH_MSG_BASE_X			31
 #define SOUTH_MSG_BASE_Y			57
 
-#define WEST_MSG_BASE_X				14
-#define WEST_MSG_BASE_Y				47
+#define WEST_MSG_BASE_X				19
+#define WEST_MSG_BASE_Y				41
 
 int KEY_val, SW_val;
 int KEY0_flag, KEY1_flag, KEY2_flag, KEY3_flag;
@@ -490,7 +489,7 @@ void VGA_clear_timers() {
 void VGA_north_arrow() {
 	// draws a north (upwards) facing arrow
 	int x_base = 150;
-	int y_base = 120;
+	int y_base = 144;
 	short pixel_color = 0xFFFF;		// white
 
 	// draw the center line
@@ -533,8 +532,8 @@ void VGA_south_arrow() {
 
 void VGA_east_arrow() {
 	// draws a east (right-wards) facing arrow
-	int x_base = 212;
-	int y_base = 168;
+	int x_base = 192;
+	int y_base = 181;
 	short pixel_color = 0xFFFF;		// white
 
 	// draw the center line
@@ -556,8 +555,8 @@ void VGA_east_arrow() {
 
 void VGA_west_arrow() {
 	// draws a west (left-wards) facing arrow
-	int x_base = 72;
-	int y_base = 168;
+	int x_base = 92;
+	int y_base = 181;
 	short pixel_color = 0xFFFF;		// white
 
 	// draw the center line
