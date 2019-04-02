@@ -45,7 +45,7 @@ int tot_time_rem_SS, tot_time_rem_MM;
 int tot_time_SS, tot_time_MM;
 
 // Gameplay Global Vars
-int sword_flag, key_flag, minotaur_gone_flag; // inventory
+int sword_flag, key_flag, minotaur_gone_flag, minotaur_slain_flag; // inventory
 
 
 /* Definition of Semaphores & Mailboxes */
@@ -192,8 +192,8 @@ const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
   "You awake in a pitch black room of cold, hard stone. You hear an oddly         familiar growl in the distance...",  			// Loc 0: Start Screen
 	"You continue down a dark hallway.                                              The only way to go is forward.",  				// Loc 1
 	"The hallway continues, no end in sight. You see writing on the wall ahead...",																						// Loc 2
-	"You continue, and the footsteps stop abruptly. On the wall reads               'None shall escape the Labyrinth'",				// Loc 3
-	"The hallway continues",																																																	// loc 4
+	"You continue, and the footsteps stop abruptly. On the wall reads               'None shall escape the Labyrinth'.",				// Loc 3
+	"The hallway continues.",																																																	// loc 4
 	"Finally, the hallway ends. There's a simple wooden door, with a latch on it.",			// Loc 5
 	"You're back at the locked door from which you came... still locked.",							// Loc 6
 	"You're north of a rotten pillar... god does it stink.",														// Loc 7
@@ -206,7 +206,7 @@ const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"You're in a twisting corridor.",																										// Loc 14
 	"You're in a short hallway. There's a dank pillar to the East.",										// Loc 15
 	"Error: Loc 16 is an invalid location",																							// Loc 16 (not a valid spot)
-	"You're behind the pillar. To the West, you see 'Only a sword will slay him'    inscribed on the   wall... that's definitely not red paint...",				// Loc 17
+	"You're behind the pillar. To the West, you see 'Only a sword will Slay         the Beast' inscribed on the wall... that's definitely not red paint...",				// Loc 17
 	"A long dark hallway is to the South, and multiple corridors to the West.",					// Loc 18
 	"The corridor splits, opening in all directions. But to the North, you spot     what looks like a weird glowing Shrine...",					// Loc 19
 	"You're at the end of the corridor, which opens up North of you.",									// Loc 20
@@ -228,7 +228,7 @@ const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"As the hallway continues, a painting of what looks like the apocalypse         is hung on the Eastern wall. ",		// Loc 36
 	"You're at a corner which opens to the East & South.",															// Loc 37
 	"You're in a hallway, and there are bones riddled everywhere...",										// Loc 38
-	"There's some sort of Den to the East, and a corridor to the West",									// Loc 39
+	"There's some sort of Den to the East, and a corridor to the West.",									// Loc 39
 	"The Minotaur's Den reeks of death.",																								// Loc 40
 	"It's a dead end.",		// Loc 41
 	"The Labyrinth opens in all directions again.",		// Loc 42
@@ -480,7 +480,7 @@ const char LUT_loc_east_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"KEY0: Continue East",				// Loc 2
 	"KEY0: Continue East",				// Loc 3
 	"KEY0: Continue East",				// Loc 4
-	"KEY0: Continue East",				// Loc 5
+	"KEY0: Go East through door",				// Loc 5
 	"KEY0: Go East",		// Loc 6
 	"KEY0: Go East",		// Loc 7
 	" ",								// Loc 8: no east option
@@ -977,7 +977,7 @@ void TaskStartScreen(void* pdata) {
 		srand(seed_val);
 
 		// Reset Global Game Vars
-		location = 0;
+		location = 43; // TODO:
 		step_count = 0;
 		time_250ms = 0;
     step_time_rem_SS = 40;		// TODO: change back
@@ -1109,9 +1109,10 @@ void TaskMakeChoice(void* pdata) {
 					if (minotaur_gone_flag && key_flag) {
 						location = 40;
 					} else if (minotaur_gone_flag && (!key_flag)) {
-						location = 86;	// encounter Minotaur for first time
+						location = 86;
 					} else {
-						location = 84;
+						location = 84;	// encounter Minotaur for first time
+						max_step_time_rem = (max_step_time_rem / 4);
 					}
 					step_time_rem_SS = max_step_time_rem;
 					time_250ms = 0;
@@ -1256,7 +1257,9 @@ void TaskMakeChoice(void* pdata) {
 					KEY2_flag = 0;
 					if (sword_flag) {
 						minotaur_gone_flag = 1;
+						minotaur_slain_flag = 1;
 						location = 85;		// Minotaur is defeated!
+						max_step_time_rem = (max_step_time_rem * 4);
 						step_time_rem_SS = max_step_time_rem;
 						time_250ms = 0;
 						step_count++;
@@ -1269,7 +1272,10 @@ void TaskMakeChoice(void* pdata) {
 					KEY3_flag = 0;
 					minotaur_gone_flag = 1;
 					location = 87;	// run from minotaur
-					max_step_time_rem = (max_step_time_rem / 2);
+					if (tot_time_rem_MM >= 1) {
+						tot_time_rem_MM = 0;
+						tot_time_rem_SS = 59;
+					}
 					step_time_rem_SS = max_step_time_rem;
 					time_250ms = 0;
 					step_count++;
@@ -1555,8 +1561,8 @@ void TaskDispResults(void* pdata) {
 	  VGA_text_clear();
 
 		// disp winning message
-		VGA_text(25, 20, "Congratulations! You escaped The Labyrinth!");
-		VGA_text(46, 22, ":D");
+		VGA_text(17, 20, "Congratulations! You escaped The Labyrinth!");
+		VGA_text(35, 22, ":D");
 
 		// display total time elapsed
 		char tot_time_MMSS_msg[VGA_TEXT_MAX_SIZE];
@@ -1568,9 +1574,23 @@ void TaskDispResults(void* pdata) {
 		char step_count_msg[VGA_TEXT_MAX_SIZE];
 		sprintf(step_count_msg, "Total Steps Taken: %d", step_count);
 
-		VGA_text(25, 35, step_count_msg);
+		VGA_text(25, 33, step_count_msg);
 
-		// display option to reset game
+		// display if sword was taken
+		if (sword_flag) {
+			VGA_text(25, 36, "Sword Taken? Yes");
+		} else {
+			VGA_text(25, 36, "Sword Taken? No");
+		}
+
+		// display if Minotaur was slain
+		if (minotaur_slain_flag) {
+			VGA_text(25, 39, "Minotaur Slain? Yes");
+		} else {
+			VGA_text(25, 39, "Minotaur Slain? No");
+		}
+
+		// display option to reset game (KEY1)
 		VGA_disp_options(-1);
 
 		// after running once, wait until a new game is started (and finished)
@@ -1595,8 +1615,8 @@ void TaskDispGameOver(void* pdata) {
 	  VGA_text_clear();
 
 		// disp losing message
-		VGA_text(30, 20, "The Minotaur got ya...");
-		VGA_text(38, 22, ">:(");
+		VGA_text(27, 20, "The Minotaur got ya...");
+		VGA_text(35, 22, ">:(");
 
 		// display total time elapsed
 		char tot_time_MMSS_msg[VGA_TEXT_MAX_SIZE];
@@ -1608,7 +1628,21 @@ void TaskDispGameOver(void* pdata) {
 		char step_count_msg[VGA_TEXT_MAX_SIZE];
 		sprintf(step_count_msg, "Total Steps Taken: %d", step_count);
 
-		VGA_text(25, 35, step_count_msg);
+		VGA_text(25, 33, step_count_msg);
+
+		// display if sword was taken
+		if (sword_flag) {
+			VGA_text(25, 36, "Sword Taken? Yes");
+		} else {
+			VGA_text(25, 36, "Sword Taken? No");
+		}
+
+		// display if Minotaur was slain
+		if (minotaur_slain_flag) {
+			VGA_text(25, 39, "Minotaur Slain? Yes");
+		} else {
+			VGA_text(25, 39, "Minotaur Slain? No");
+		}
 
 		// display option to reset game
 		VGA_disp_options(-1);
