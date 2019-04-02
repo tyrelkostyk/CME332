@@ -40,10 +40,12 @@ int KEY0_flag, KEY1_flag, KEY2_flag, KEY3_flag;
 int location, step_count;
 
 int time_250ms;
-int step_time_rem_SS;
+int step_time_rem_SS, max_step_time_rem;
 int tot_time_rem_SS, tot_time_rem_MM;
 int tot_time_SS, tot_time_MM;
 
+// Gameplay Global Vars
+int sword_flag, key_flag; // inventory
 
 /* Definitions of LUTs for unique properties of each labyrinth location */
 
@@ -55,7 +57,7 @@ const char LUT_location_permissions [MAX_LOCATIONS] = {
   KEY0,                 		// Loc 3: East
   KEY0,                 		// Loc 4: East
   KEY0,                 		// Loc 5: East
-  KEY0+KEY1,            		// Loc 6: East, South
+  KEY0+KEY1,            		// Loc 6: East, South (after first time)
 	KEY0+KEY3,								// Loc 7: East, West
 	KEY1+KEY3,								// Loc 8: West, South
 	0,												// Loc 9: Not a valid spot
@@ -81,15 +83,15 @@ const char LUT_location_permissions [MAX_LOCATIONS] = {
 	KEY0+KEY3,								// Loc 29: East, West
 	KEY0+KEY3,								// Loc 30: East, West
 	KEY0+KEY3,								// Loc 31: East, West
-	KEY3,											// Loc 32: West
+	KEY3,											// Loc 32: West (after investigating)
 	KEY1+KEY2,								// Loc 33: North, South
 	0,												// Loc 34: Not a valid spot
-	KEY1,											// Loc 35: South
+	KEY1,											// Loc 35: South (after getting sword)
 	KEY1+KEY2,								// Loc 36: North, South
 	KEY0+KEY1,								// Loc 37: East, South
 	KEY0+KEY3,								// Loc 38: East, West
-	KEY0+KEY3,								// Loc 39: East, West
-	KEY0+KEY3,								// Loc 40: East, West
+	KEY0+KEY3,								// Loc 39: East, West (unless running from Minotaur)
+	KEY0+KEY3,								// Loc 40: East, West (only after Minotaur leaves & player investigates)
 	KEY0,											// Loc 41: East
 	KEY0+KEY1+KEY2+KEY3,			// Loc 42: All directions
 	KEY0+KEY3,								// Loc 43: East, West
@@ -99,7 +101,7 @@ const char LUT_location_permissions [MAX_LOCATIONS] = {
 	KEY0+KEY3,								// Loc 47: East, West
 	KEY0+KEY3,								// Loc 48: East, West
 	KEY1+KEY3,								// Loc 49: South, West
-	KEY1,											// Loc 50: South
+	KEY1,											// Loc 50: South (unless taking secret Minotaur tunnel)
 	KEY1+KEY2,								// Loc 51: North, South
 	KEY1,											// Loc 52: South
 	KEY1+KEY2,								// Loc 53: North, South
@@ -121,7 +123,7 @@ const char LUT_location_permissions [MAX_LOCATIONS] = {
 	KEY0+KEY2+KEY3,						// Loc 69: North, East, West
 	KEY0+KEY3,								// Loc 70: East, West
 	KEY1+KEY3,								// Loc 71: South, West
-	KEY0,											// Loc 72: East
+	KEY0,											// Loc 72: East (unless Key has been retrieved)
 	KEY0+KEY3,								// Loc 73: East, West
 	KEY0+KEY3,								// Loc 74: East, West
 	KEY0+KEY3,								// Loc 75: East, West
@@ -132,15 +134,14 @@ const char LUT_location_permissions [MAX_LOCATIONS] = {
 	KEY2,											// Loc 80: North
 			// ACTION SPOTS
 	KEY0+KEY1,								// 81; Action spot for Loc 6 (first time only): East, South
-	KEY3,											// 82; Action spot for Loc 32 (always, after investigating): West
-	KEY1+KEY2,								// 83; 1st Action spot for Loc 35 (first time only): North(pick up), South(leave)
-	KEY1,											// 84; 2nd Action spot for Loc 35 (after pick up only): South(leave)
-	KEY2+KEY3,								// 85; 1st Action spot for Loc 40 (first time only): North(fight), west(run)
-	KEY2,											// 86; 2nd Action spot for Loc 40 (fight & win only): North(investigate)
-	KEY0+KEY1,								// 87; 3rd Action spot for Loc 40 (fight & win only, after investigate): East(secret exit), West
-	KEY3,											// 88; 1st Action spot for Loc 39 (after running only, once): West (keep running!)
-	KEY1,											// 89; Action spot for Loc 50 (only after fighting & taking secret exit): South
-	KEY1,											// 90; Action spot for Loc 72 (Only after getting key): South (to win!)
+	KEY1+KEY2,								// 82; 1st Action spot for Loc 35 (first time only): North (pick up), South (leave)
+	KEY1,											// 83; 2nd Action spot for Loc 35 (after pick up only): South (leave)
+	KEY2+KEY3,								// 84; 1st Action spot for Loc 40 (first time only): North (fight), west (run)
+	KEY2,											// 85; 2nd Action spot for Loc 40 (fight & win OR run & return): North (investigate)
+	KEY0+KEY3,								// 86; 3rd Action spot for Loc 40 (after investigate): East (secret exit), West
+	KEY3,											// 87; Action spot for Loc 39 (after running only, once): West (keep running!)
+	KEY1,											// 88; Action spot for Loc 50 (only after fighting & taking secret exit): South
+	KEY1,											// 89; Action spot for Loc 72 (Only after getting key): South (to win!)
 };
 
 // lut for what message to display at each location
@@ -175,7 +176,67 @@ const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"Test msg loc 27",		// Loc 27
 	"Test msg loc 28",		// Loc 28
 	"Test msg loc 29",		// Loc 29
-	"Test msg loc 36",		// Loc 30
+	"Test msg loc 30",		// Loc 30
+	"Test msg loc 31",		// Loc 31
+	"Test msg loc 32",		// Loc 32
+	"Test msg loc 33",		// Loc 33
+	"Test msg loc 34",		// Loc 34
+	"Test msg loc 35",		// Loc 35
+	"Test msg loc 36",		// Loc 36
+	"Test msg loc 37",		// Loc 37
+	"Test msg loc 38",		// Loc 38
+	"Test msg loc 39",		// Loc 39
+	"Test msg loc 40",		// Loc 40
+	"Test msg loc 41",		// Loc 41
+	"Test msg loc 42",		// Loc 42
+	"Test msg loc 43",		// Loc 43
+	"You see a body on the floor North of you!",		// Loc 44
+	"Test msg loc 45",		// Loc 45
+	"Test msg loc 46",		// Loc 46
+	"Test msg loc 47",		// Loc 47
+	"Test msg loc 48",		// Loc 48
+	"Test msg loc 49",		// Loc 49
+	"Test msg loc 50",		// Loc 50
+	"Test msg loc 51",		// Loc 51
+	"Test msg loc 52",		// Loc 52
+	"Test msg loc 53",		// Loc 53
+	"Test msg loc 54",		// Loc 54
+	"Test msg loc 55",		// Loc 55
+	"Test msg loc 56",		// Loc 56
+	"Test msg loc 57",		// Loc 57
+	"Test msg loc 58",		// Loc 58
+	"Test msg loc 59",		// Loc 59
+	"Test msg loc 60",		// Loc 60
+	"Test msg loc 61",		// Loc 61
+	"Test msg loc 62",		// Loc 62
+	"Test msg loc 63",		// Loc 63
+	"Test msg loc 64",		// Loc 64
+	"Test msg loc 65",		// Loc 65
+	"Test msg loc 66",		// Loc 66
+	"Test msg loc 67",		// Loc 67
+	"Test msg loc 68",		// Loc 68
+	"Test msg loc 69",		// Loc 69
+	"Test msg loc 70",		// Loc 70
+	"Test msg loc 71",		// Loc 71
+	"Test msg loc 72",		// Loc 72
+	"Test msg loc 73",		// Loc 73
+	"Test msg loc 74",		// Loc 74
+	"Test msg loc 75",		// Loc 75
+	"Test msg loc 76",		// Loc 76
+	"Test msg loc 77",		// Loc 77
+	"Test msg loc 78",		// Loc 78
+	"Test msg loc 79",		// Loc 79
+	"Test msg loc 80",		// Loc 80
+	// Action Locations
+	"You close the door behind you, and immediately hear it be aggresively locked.  You try to open it, but it's barred from the other side...",		// Loc 81
+	"This guy must've been some sort of Knight, before he lost his head...          He's got something strapped to his belt... it looks like a Sword!",		// Loc 82
+	"The Sword fits perfectly in your hand, and has a slight glow to it.            It doesn't have even a drop of blood on it...",		// Loc 83
+	"Test msg loc 84",		// Loc 84
+	"Test msg loc 85",		// Loc 85
+	"Test msg loc 86",		// Loc 86
+	"Test msg loc 87",		// Loc 87
+	"Test msg loc 88",		// Loc 88
+	"The door is locked, but the key looks the right size!"			// Loc 89
 };
 
 // lut for the main question to ask at each location
@@ -189,14 +250,14 @@ const char LUT_location_question [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"Continue forward?",  // Loc 6
 	"Continue forward?",  // Loc 7
 	"Which direction will you go?",	 // Loc 8
-	" ",								// Loc 9 (invalid spot)
+	" ",								// Loc 9 (invalid location)
 	"Test q loc 10",		// Loc 10
 	"Test q loc 11",		// Loc 11
 	"Test q loc 12",		// Loc 12
 	"Test q loc 13",		// Loc 13
 	"Test q loc 14",		// Loc 14
 	"Test q loc 15",		// Loc 15
-	" ",								// Loc 16 (invalid spot)
+	" ",								// Loc 16 (invalid location)
 	"Test q loc 17",		// Loc 17
 	"Test q loc 18",		// Loc 18
 	"Test q loc 19",		// Loc 19
@@ -210,7 +271,67 @@ const char LUT_location_question [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"Test q loc 27",		// Loc 27
 	"Test q loc 28",		// Loc 28
 	"Test q loc 29",		// Loc 29
-	"Test q loc 36",		// Loc 30
+	"Test q loc 30",		// Loc 30
+	"Test q loc 31",		// Loc 31
+	"Test q loc 32",		// Loc 32
+	"Test q loc 33",		// Loc 33
+	" ",								// Loc 34 (invalid location)
+	"Test q loc 35",		// Loc 35
+	"Test q loc 36",		// Loc 36
+	"Test q loc 37",		// Loc 37
+	"Test q loc 38",		// Loc 38
+	"Test q loc 39",		// Loc 39
+	"Test q loc 40",		// Loc 40
+	"Test q loc 41",		// Loc 41
+	"Test q loc 42",		// Loc 42
+	"Test q loc 43",		// Loc 43
+	"Investigate the body? Or go another direction?",		// Loc 44
+	"Test q loc 45",		// Loc 45
+	"Test q loc 46",		// Loc 46
+	"Test q loc 47",		// Loc 47
+	"Test q loc 48",		// Loc 48
+	"Test q loc 49",		// Loc 49
+	"Test q loc 50",		// Loc 50
+	"Test q loc 51",		// Loc 51
+	"Test q loc 52",		// Loc 52
+	"Test q loc 53",		// Loc 53
+	"Test q loc 54",		// Loc 54
+	"Test q loc 55",		// Loc 55
+	" ",								// Loc 56 (invalid location)
+	" ",								// Loc 57 (invalid location)
+	"Test q loc 58",		// Loc 58
+	"Test q loc 59",		// Loc 59
+	"Test q loc 60",		// Loc 60
+	"Test q loc 61",		// Loc 61
+	"Test q loc 62",		// Loc 62
+	"Test q loc 63",		// Loc 63
+	"Test q loc 64",		// Loc 64
+	"Test q loc 65",		// Loc 65
+	"Test q loc 66",		// Loc 66
+	"Test q loc 67",		// Loc 67
+	"Test q loc 68",		// Loc 68
+	"Test q loc 69",		// Loc 69
+	"Test q loc 70",		// Loc 70
+	"Test q loc 71",		// Loc 71
+	"Test q loc 72",		// Loc 72
+	"Test q loc 73",		// Loc 73
+	"Test q loc 74",		// Loc 74
+	"Test q loc 75",		// Loc 75
+	"Test q loc 76",		// Loc 76
+	"Test q loc 77",		// Loc 77
+	"Test q loc 78",		// Loc 78
+	"Test q loc 79",		// Loc 79
+	"Test q loc 80",		// Loc 80
+	// Action Locations
+	"You don't seem to have an option of going back... which way will you go now?",		// Loc 81
+	"Take Sword off the dead Knight?",		// Loc 82
+	"Continue onwards, Sword in hand?",		// Loc 83
+	"Test q loc 84",		// Loc 84
+	"Test q loc 85",		// Loc 85
+	"Test q loc 86",		// Loc 86
+	"Test q loc 87",		// Loc 87
+	"Test q loc 88",		// Loc 88
+	"Insert Key and escape the Labyrinth?",		// Loc 89
 };
 
 // TODO: modify directional options to be more "fluid" yeno
@@ -252,6 +373,61 @@ const char LUT_loc_north_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"KEY2: Go North",		// Loc 33
 	" ",								// Loc 34: no north option (invalid spot)
 	" ",								// Loc 35: no north option
+	"KEY2: Go North",		// Loc 36
+	" ",								// Loc 37: no north option
+	" ",								// Loc 38: no north option
+	" ",								// Loc 39: no north option
+	" ",								// Loc 40: no north option
+	" ",								// Loc 41: no north option
+	"KEY2: Go North",		// Loc 42
+	" ",								// Loc 43: no north option
+	"KEY2: Go North to check out body",		// Loc 44
+	"KEY2: Go North",		// Loc 45
+	"KEY2: Go North",		// Loc 46
+	" ",								// Loc 47: no north option
+	" ",								// Loc 48: no north option
+	" ",								// Loc 49: no north option
+	" ",								// Loc 50: no north option
+	"KEY2: Go North",		// Loc 51
+	" ",								// Loc 52: no north option
+	"KEY2: Go North",		// Loc 53
+	"KEY2: Go North",		// Loc 54
+	"KEY2: Go North",		// Loc 55
+	" ",								// Loc 56: no north option (invalid location)
+	" ",								// Loc 57: no north option (invalid location)
+	"KEY2: Go North",		// Loc 58
+	"KEY2: Go North",		// Loc 59
+	"KEY2: Go North",		// Loc 60
+	"KEY2: Go North",		// Loc 61
+	"KEY2: Go North",		// Loc 62
+	"KEY2: Go North",		// Loc 63
+	" ",								// Loc 64: no north option
+	" ",								// Loc 65: no north option
+	" ",								// Loc 66: no north option
+	"KEY2: Go North",		// Loc 67
+	"KEY2: Go North",		// Loc 68
+	"KEY2: Go North",		// Loc 69
+	" ",								// Loc 70: no north option
+	" ",								// Loc 71: no north option
+	" ",								// Loc 72: no north option
+	" ",								// Loc 73: no north option
+	" ",								// Loc 74: no north option
+	" ",								// Loc 75: no north option
+	" ",								// Loc 76: no north option
+	"KEY2: Go North",		// Loc 77
+	" ",								// Loc 78: no north option
+	" ",								// Loc 79: no north option (invalid location)
+	"KEY2: Go North",		// Loc 80
+		// ACTION SPOTS
+	" ",								// 81: Action for loc 6; no north option
+	"KEY2: Pick Up Sword!",		// 82: Action for loc 35
+	" ",											// 83: no north option
+	"KEY2: Fight!",						// 84: 1st Action for loc 40
+	"KEY2: Investigate",			// 85: 2nd Action for loc 40
+	" ",								// 86: Action for loc 40; no north option
+	" ",								// 87: Action for loc 39; no north option
+	" ",								// 88: Action for loc 50; no north option
+	" "									// 89: Action for loc 72; no north option
 };
 
 // lut for the text associated with the East option (if applicable)
@@ -293,6 +469,60 @@ const char LUT_loc_east_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	" ",								// Loc 34: no east option (invalid spot)
 	" ",								// Loc 35: no east option
 	" ",								// Loc 36: no east option
+	"KEY0: Go East",		// Loc 37
+	"KEY0: Go East",		// Loc 38
+	"KEY0: Go East",		// Loc 39
+	"KEY0: Go East",		// Loc 40
+	"KEY0: Go East",		// Loc 41
+	"KEY0: Go East",		// Loc 42
+	"KEY0: Go East",		// Loc 43
+	" ",								// Loc 44: no east option
+	" ",								// Loc 45: no east option
+	"KEY0: Go East",		// Loc 46
+	"KEY0: Go East",		// Loc 47
+	"KEY0: Go East",		// Loc 48
+	" ",								// Loc 49: no east option
+	" ",								// Loc 50: no east option
+	" ",								// Loc 51: no east option
+	" ",								// Loc 52: no east option
+	" ",								// Loc 53: no east option
+	" ",								// Loc 54: no east option
+	" ",								// Loc 55: no east option
+	" ",								// Loc 56: no east option (invalid location)
+	" ",								// Loc 57: no east option (invalid location)
+	" ",								// Loc 58: no east option
+	" ",								// Loc 59: no east option
+	" ",								// Loc 60: no east option
+	"KEY0: Go East",		// Loc 61
+	" ",								// Loc 62: no east option
+	"KEY0: Go East",		// Loc 63
+	"KEY0: Go East",		// Loc 64
+	"KEY0: Go East",		// Loc 65
+	"KEY0: Go East",		// Loc 66
+	"KEY0: Go East",		// Loc 67
+	"KEY0: Go East",		// Loc 68
+	"KEY0: Go East",		// Loc 69
+	"KEY0: Go East",		// Loc 70
+	" ",								// Loc 71: no east option
+	"KEY0: Go East",		// Loc 72
+	"KEY0: Go East",		// Loc 73
+	"KEY0: Go East",		// Loc 74
+	"KEY0: Go East",		// Loc 75
+	"KEY0: Go East",		// Loc 76
+	"KEY0: Go East",		// Loc 77
+	" ",								// Loc 78: no east option
+	" ",								// Loc 79: no east option
+	" ",								// Loc 80: no east option
+		// ACTION SPOTS
+	"KEY0: Go East",		// 81: Action for loc 6
+	" ",								// 82: 1st Action for loc 35; no east option
+	" ",								// 83: 2nd Action for loc 35; no east option
+	" ",								// 84: 1st Action for loc 40; no east option
+	" ",								// 85: 2nd Action for loc 40; no east option
+	"KEY0: Crawl into Secret Tunnel",		// 86: Action for loc 40
+	" ",								// 87: 1st Action for loc 32; no east option
+	" ",								// 88: Action for loc 50; no east option
+	" "									// 89: Action for loc 72; no east option
 };
 
 // lut for the text associated with the South option (if applicable)
@@ -333,6 +563,61 @@ const char LUT_loc_south_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"KEY1: Go South",		// Loc 33
 	" ",								// Loc 34: no south option (invalid spot)
 	"KEY1: Go South",		// Loc 35
+	"KEY1: Go South",		// Loc 36
+	"KEY1: Go South",		// Loc 37
+	" ",								// Loc 38: no south option
+	" ",								// Loc 39: no south option
+	" ",								// Loc 40: no south option
+	" ",								// Loc 40: no south option
+	"KEY1: Go South",		// Loc 42
+	" ",								// Loc 43: no south option
+	"KEY1: Go South",		// Loc 44
+	"KEY1: Go South",		// Loc 45
+	"KEY1: Go South",		// Loc 46
+	" ",								// Loc 47: no south option
+	" ",								// Loc 48: no south option
+	"KEY1: Go South",		// Loc 49
+	"KEY1: Go South",		// Loc 50
+	"KEY1: Go South",		// Loc 51
+	"KEY1: Go South",		// Loc 52
+	"KEY1: Go South",		// Loc 53
+	"KEY1: Go South",		// Loc 54
+	" ",								// Loc 55: no south option
+	" ",								// Loc 56: no south option (invalid spot)
+	" ",								// Loc 57: no south option (invalid spot)
+	"KEY1: Go South",		// Loc 58
+	"KEY1: Go South",		// Loc 59
+	"KEY1: Go South",		// Loc 60
+	" ",								// Loc 61: no south option
+	" ",								// Loc 62: no south option
+	" ",								// Loc 63: no south option
+	" ",								// Loc 64: no south option
+	" ",								// Loc 65: no south option
+	" ",								// Loc 66: no south option
+	" ",								// Loc 67: no south option
+	"KEY1: Go South",		// Loc 68
+	" ",								// Loc 69: no south option
+	" ",								// Loc 70: no south option
+	"KEY1: Examine Cracks",		// Loc 71
+	" ",								// Loc 72: no south option
+	" ",								// Loc 73: no south option
+	" ",								// Loc 74: no south option
+	" ",								// Loc 75: no south option
+	" ",								// Loc 76: no south option
+	" ",								// Loc 77: no south option
+	" ",								// Loc 78: no south option
+	" ",								// Loc 79: no south option
+	" ",								// Loc 80: no south option
+		// ACTION SPOTS
+		"KEY1: Go South",		// 81: Action for loc 6
+		"KEY1: Leave Sword Behind",		// 82: 1st Action for loc 35
+		"KEY1: Go South, Sword in hand",							// 83: 2nd Action for loc 35
+		" ",								// 84: 1st Action for loc 40; no south option
+		" ",								// 85: 2nd Action for loc 40; no south option
+		" ",								// 86: 3rd Action for loc 40; no south option
+		" ",								// 87: Action for loc 39; no south option
+		"KEY1: Go South",		// 88: Action for loc 50
+		"KEY1: ESCAPE THE LABYRINTH"		// 89: Action for loc 72
 };
 
 // lut for the text associated with the West option (if applicable)
@@ -373,6 +658,37 @@ const char LUT_loc_west_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	" ",								// Loc 33: no west option
 	" ",								// Loc 34: no west option (invalid spot)
 	" ",								// Loc 35: no west option
+	" ",								// Loc 36: no west option
+	" ",								// Loc 37: no west option
+	" ",								// Loc 41: no west option
+	" ",								// Loc 45: no west option
+	" ",								// Loc 46: no west option
+	" ",								// Loc 50: no west option
+	" ",								// Loc 51: no west option
+	" ",								// Loc 52: no west option
+	" ",								// Loc 53: no west option
+	" ",								// Loc 54: no west option
+	" ",								// Loc 55: no west option
+	" ",								// Loc 56: no west option (invalid spot)
+	" ",								// Loc 57: no west option (invalid spot)
+	" ",								// Loc 58: no west option
+	" ",								// Loc 59: no west option
+	" ",								// Loc 60: no west option
+	" ",								// Loc 62: no west option
+	" ",								// Loc 63: no west option
+	" ",								// Loc 72: no west option
+	" ",								// Loc 79: no west option (invalid spot)
+	" ",								// Loc 80: no west option
+		// ACTION SPOTS
+		" ",								// 81: Action for loc 32; no west option
+		" ",								// 82: 1st Action for loc 35; no west option
+		" ",								// 83: 2nd Action for loc 35; no west option
+		"KEY3: RUN!",				// 84: 1st Action for loc 40
+		" ",								// 85: 2nd Action for loc 40; no west option
+		"KEY3: Go West",		// 86: 3rd Action for loc 40
+		"KEY3: KEEP RUNNING",		// 87: Action for loc 39
+		" ",								// 88: Action for loc 50; no west option
+		" ",								// 89: Action for loc 72; no west option
 };
 
 /* Definition of Semaphores & Mailboxes */
@@ -576,31 +892,38 @@ void VGA_west_arrow() {
 
 void VGA_disp_options(int loc) {
 	// Draws arrows & prints messages next to those arrows based on current location
-
-	// Go through each direction and, if it's allowed, display the arrow & option msg
-	if (LUT_location_permissions[loc] & KEY0) {
-		// East
-		VGA_east_arrow();
-		VGA_text(EAST_MSG_BASE_X, EAST_MSG_BASE_Y, LUT_loc_east_option[loc]);
-	}
-
-	if (LUT_location_permissions[loc] & KEY1) {
-		// South
+	if (loc < 0) {
+		// Game is over (either won or lost)
 		VGA_south_arrow();
-		VGA_text(SOUTH_MSG_BASE_X, SOUTH_MSG_BASE_Y, LUT_loc_south_option[loc]);
+		VGA_text(SOUTH_MSG_BASE_X, SOUTH_MSG_BASE_Y, "KEY1: Reset Game");
+
+	} else {
+		// Go through each direction and, if it's allowed, display the arrow & option msg
+		if (LUT_location_permissions[loc] & KEY0) {
+			// East
+			VGA_east_arrow();
+			VGA_text(EAST_MSG_BASE_X, EAST_MSG_BASE_Y, LUT_loc_east_option[loc]);
+		}
+
+		if (LUT_location_permissions[loc] & KEY1) {
+			// South
+			VGA_south_arrow();
+			VGA_text(SOUTH_MSG_BASE_X, SOUTH_MSG_BASE_Y, LUT_loc_south_option[loc]);
+		}
+
+		if (LUT_location_permissions[loc] & KEY2) {
+			// North
+			VGA_north_arrow();
+			VGA_text(NORTH_MSG_BASE_X, NORTH_MSG_BASE_Y, LUT_loc_north_option[loc]);
+		}
+
+		if (LUT_location_permissions[loc] & KEY3) {
+			// West
+			VGA_west_arrow();
+			VGA_text(WEST_MSG_BASE_X, WEST_MSG_BASE_Y, LUT_loc_west_option[loc]);
+		}
 	}
 
-	if (LUT_location_permissions[loc] & KEY2) {
-		// North
-		VGA_north_arrow();
-		VGA_text(NORTH_MSG_BASE_X, NORTH_MSG_BASE_Y, LUT_loc_north_option[loc]);
-	}
-
-	if (LUT_location_permissions[loc] & KEY3) {
-		// West
-		VGA_west_arrow();
-		VGA_text(WEST_MSG_BASE_X, WEST_MSG_BASE_Y, LUT_loc_west_option[loc]);
-	}
 }
 
 
@@ -617,6 +940,11 @@ void TaskStartScreen(void* pdata) {
 
 		// Don't run until active / finished states are completed/inactive
 		value = OSFlagPend(GameStatus, GAME_ACTIVE + GAME_FINISHED, OS_FLAG_WAIT_CLR_ALL, 0, &err);
+		value = OSFlagPost(GameStatus, GAME_RESET, OS_FLAG_CLR, &err); // disable RESET flag
+
+		// Clear VGA before displaying new location
+		VGA_clear();
+		VGA_text_clear();
 
 		// increment seed_val, reseed program for rand var
 		seed_val = OSTimeGet();
@@ -626,9 +954,10 @@ void TaskStartScreen(void* pdata) {
 		location = 0;
 		step_count = 0;
 		time_250ms = 0;
-    step_time_rem_SS = 300;		// TODO: change back
-    tot_time_rem_SS = 59;
-    tot_time_rem_MM = 9;
+    step_time_rem_SS = 20;		// TODO: change back
+		max_step_time_rem = step_time_rem_SS;
+    tot_time_rem_SS = 0;
+    tot_time_rem_MM = 5;
 		tot_time_SS = 0;
 		tot_time_MM = 0;
 
@@ -642,9 +971,9 @@ void TaskStartScreen(void* pdata) {
 		VGA_disp_options(location);
 
 		// Wait until game is reset until reseting & idling again
-		value = OSFlagPend(GameStatus, GAME_RESET, OS_FLAG_WAIT_SET_ANY + OS_FLAG_CONSUME, 0, &err);
+		value = OSFlagPend(GameStatus, GAME_RESET, OS_FLAG_WAIT_SET_ANY, 0, &err);
 
-		OSTimeDly(4);
+		OSTimeDly(2);
 
 	}
 }
@@ -677,7 +1006,7 @@ void TaskMakeChoice(void* pdata) {
 			KEY1_flag = 0;
 			KEY2_flag = 1;
 			KEY3_flag = 0;
-		} else if (KEY_val == KEY3) {				// KEY2
+		} else if (KEY_val == KEY3) {				// KEY3
 			KEY0_flag = 0;
 			KEY1_flag = 0;
 			KEY2_flag = 0;
@@ -689,89 +1018,188 @@ void TaskMakeChoice(void* pdata) {
 		flags = OSFlagQuery(GameStatus, &err);
 
 		// State driver - Dependent on what state we're currently in
-		if (!(flags & GAME_ACTIVE)) {
-			// IDLE state
+		if (!(flags & GAME_ACTIVE) && !(flags && GAME_LOST) && !(flags && GAME_FINISHED) && !(flags && GAME_RESET)) {
+			// IDLE state (no active GameStatus flags)
 
 			if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
 				KEY0_flag = 0;
 				location += 1;
+				step_count++;
 				value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_NEW_LOCATION, OS_FLAG_SET, &err);
 			}
-		}
-
-		if ( (flags & GAME_ACTIVE) && (!(flags & GAME_NEW_LOCATION)) ) {
-			// ACTIVE state (NOT rendering new location, i.e. taking input)
 
 
-			// TODO - add edge cases for "action spots"
-				// Before checking for regular locations? Probably
-					// Will also need to add special cases to the regular (< 80) cases,
-					// which will move player from a regular spot to an action spot
-			if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
-				// KEY0 press - Typically means go East (rightwards)
-				KEY0_flag = 0;
-				if (LUT_location_permissions[location] & KEY0) {
-					location += 1;		// increment place in map by 1
-					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
-				}
+		} else if (flags & GAME_RESET) {
+			// GAME RESET state
 
-			} else if ( !(KEY_val & KEY1) && (KEY1_flag) ) {
-				// KEY1 press - Typically means go South (downwards)
-				KEY1_flag = 0;
-				if (LUT_location_permissions[location] & KEY1) {
-					location += 9;		// increment place in map by 9
-					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
-				}
+			// Reset event flags to default settings
+			value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_NEW_LOCATION + GAME_FINISHED + GAME_LOST, OS_FLAG_CLR, &err);
 
-			} else if ( !(KEY_val & KEY2) && (KEY2_flag) ) {
-				// KEY2 press - Typically means go North (upwards)
-				KEY2_flag = 0;
-				if (LUT_location_permissions[location] & KEY2) {
-					location -= 9;		// decrement place in map by 9
-					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
-				}
 
-			} else if ( !(KEY_val & KEY3) && (KEY3_flag) ) {
-				// KEY3 press - Typically means go West (leftwards)
-				KEY3_flag = 0;
-				if (LUT_location_permissions[location] & KEY3) {
-					location -= 1;		// decrement place in map by 1
-					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
-				}
-			}
-		}
-
-		if (flags & GAME_FINISHED) {
+		} else if (flags & GAME_FINISHED) {
 			// GAME FINISHED state
 
 			// disable active game state flags
 			value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_NEW_LOCATION, OS_FLAG_CLR, &err);
 
-			if  ( !(KEY_val & KEY0) && (KEY0_flag) ) {
+			if  ( !(KEY_val & KEY1) && (KEY1_flag) ) {
 				// Reset game
-				KEY0_flag = 0;
+				KEY1_flag = 0;
 				value = OSFlagPost(GameStatus, GAME_RESET, OS_FLAG_SET, &err);
 			}
-		}
 
-		if (flags & GAME_LOST) {
+
+		} else if (flags & GAME_LOST) {
 			// GAME LOST state
 
 			// disable active game state flags
 			value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_NEW_LOCATION, OS_FLAG_CLR, &err);
 
-			if  ( !(KEY_val & KEY0) && (KEY0_flag) ) {
+			if  ( !(KEY_val & KEY1) && (KEY1_flag) ) {
 				// Reset game
-				KEY0_flag = 0;
+				KEY1_flag = 0;
 				value = OSFlagPost(GameStatus, GAME_RESET, OS_FLAG_SET, &err);
 			}
-		}
 
-		if (flags & GAME_RESET) {
-			// GAME RESET state
 
-			// Reset event flags to default settings
-			value = OSFlagPost(GameStatus, GAME_ACTIVE + GAME_NEW_LOCATION + GAME_FINISHED + GAME_LOST, OS_FLAG_CLR, &err);
+		} else if ( (flags & GAME_ACTIVE) && (!(flags & GAME_NEW_LOCATION)) ) {
+			// ACTIVE state (NOT rendering new location, i.e. taking input)
+
+			if (location == 5) {
+					if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
+						// KEY0 press - Go East to loc 81 (action spot preceeding loc 6)
+						KEY0_flag = 0;
+						location = 81;
+						step_time_rem_SS = max_step_time_rem;
+						time_250ms = 0;
+						step_count++;
+						value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+					}
+
+			} else if (location == 44) {
+				if ( !(KEY_val & KEY1) && (KEY1_flag) ) {
+					// KEY1 press - Typically means go South (downwards)
+					KEY1_flag = 0;
+					location = 53;		// increment place in map by 9
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				} else if ( !(KEY_val & KEY2) && (KEY2_flag) ) {
+					// KEY2 press - go to location of sword
+					KEY2_flag = 0;
+					location = 82;		// go to location w/ sword on floor
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				} else if ( !(KEY_val & KEY3) && (KEY3_flag) ) {
+					// KEY3 press - Typically means go West (leftwards)
+					KEY3_flag = 0;
+					location = 43;		// increment place in map by 9
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				}
+
+			} else if (location == 81) {
+				if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
+					// KEY0 press - Typically means go East (rightwards)
+					KEY0_flag = 0;
+					location = 7;		// increment place in map by 1 (81 is 6's action spot)
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				} else if ( !(KEY_val & KEY1) && (KEY1_flag) ) {
+					// KEY1 press - Typically means go South (downwards)
+					KEY1_flag = 0;
+					location = 15;		// increment place in map by 9
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				}
+
+			} else if (location == 82) {
+				if ( !(KEY_val & KEY1) && (KEY1_flag) ) {
+					// KEY1 press - Typically means go South (downwards)
+					KEY1_flag = 0;
+					location = 44;		// increment place in map by 9
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				} else if ( !(KEY_val & KEY2) && (KEY2_flag) ) {
+					// KEY2 press - take sword
+					KEY1_flag = 0;
+					sword_flag = 1;		// sword is taken
+					location = 83;
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				}
+
+			} else if (location == 83) {
+				if ( !(KEY_val & KEY1) && (KEY1_flag) ) {
+					// KEY1 press - Typically means go South (downwards)
+					KEY1_flag = 0;
+					location = 44;		// increment place in map by 9
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				}
+
+			} else {
+				// Regular (< 80) locations
+				if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
+					// KEY0 press - Typically means go East (rightwards)
+					KEY0_flag = 0;
+					if (LUT_location_permissions[location] & KEY0) {
+						location += 1;		// increment place in map by 1
+						step_time_rem_SS = max_step_time_rem;
+						time_250ms = 0;
+						step_count++;
+						value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+					}
+
+				} else if ( !(KEY_val & KEY1) && (KEY1_flag) ) {
+					// KEY1 press - Typically means go South (downwards)
+					KEY1_flag = 0;
+					if (LUT_location_permissions[location] & KEY1) {
+						location += 9;		// increment place in map by 9
+						step_time_rem_SS = max_step_time_rem;
+						time_250ms = 0;
+						step_count++;
+						value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+					}
+
+				} else if ( !(KEY_val & KEY2) && (KEY2_flag) ) {
+					// KEY2 press - Typically means go North (upwards)
+					KEY2_flag = 0;
+					if (LUT_location_permissions[location] & KEY2) {
+						location -= 9;		// decrement place in map by 9
+						step_time_rem_SS = max_step_time_rem;
+						time_250ms = 0;
+						step_count++;
+						value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+					}
+
+				} else if ( !(KEY_val & KEY3) && (KEY3_flag) ) {
+					// KEY3 press - Typically means go West (leftwards)
+					KEY3_flag = 0;
+					if (LUT_location_permissions[location] & KEY3) {
+						location -= 1;		// decrement place in map by 1
+						step_time_rem_SS = max_step_time_rem;
+						time_250ms = 0;
+						step_count++;
+						value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+					}
+				}
+			}
 		}
 
 		OSSemPost(LocSem);
@@ -843,13 +1271,11 @@ void TaskStopwatch(void* pdata) {
 
 		OSMboxPost(MBoxRemStepTime, (void *)&step_time_rem_SS_char[0]);
 
-
 		// Send total time remaining to taskDispRemTime (in MM:SS format)
 		char tot_time_rem_MMSS_char[VGA_TEXT_MAX_SIZE];
 		sprintf(tot_time_rem_MMSS_char, "%.2d:%.2d", tot_time_rem_MM, tot_time_rem_SS);
 
 		OSMboxPost(MBoxRemTotTime, (void *)&tot_time_rem_MMSS_char[0]);
-
 
 		OSTimeDly(2);
 
@@ -866,7 +1292,8 @@ void TaskDispNewLocation(void* pdata) {
 		value = OSFlagPend(GameStatus, GAME_ACTIVE, OS_FLAG_WAIT_SET_ALL, 0, &err);
 		value = OSFlagPend(GameStatus, GAME_NEW_LOCATION, OS_FLAG_WAIT_SET_ALL + OS_FLAG_CONSUME, 0, &err);
 
-		step_count++;
+		// pend if any non-active states (LOST, RESET, FINISHED) are high
+		value = OSFlagPend(GameStatus, GAME_LOST+GAME_RESET+GAME_FINISHED, OS_FLAG_WAIT_CLR_ALL, 0, &err);
 
 		OSSemPend(LocSem, 0, &err);
 
@@ -910,7 +1337,6 @@ void TaskDispRemTime(void* pdata) {
 		step_time_msg = (char *)OSMboxPend(MBoxRemStepTime, 0 , &err);
 		if (err == OS_ERR_NONE) {
 			// No error; display remaining step time
-			// TODO: Display Remaining Step Time
 			VGA_text(3, 52, "Step Time Remaining");
 			VGA_text(3, 54, step_time_msg);
 
@@ -925,7 +1351,6 @@ void TaskDispRemTime(void* pdata) {
 		tot_time_msg = (char *)OSMboxPend(MBoxRemTotTime, 0 , &err);
 		if (err == OS_ERR_NONE) {
 			// No error; display remaining total time
-			// TODO: Display Remaining Total Time
 			VGA_text(55, 52, "Total Time Remaining");
 			VGA_text(55, 54, tot_time_msg);
 
@@ -953,12 +1378,24 @@ void TaskDispResults(void* pdata) {
 	  VGA_clear();
 	  VGA_text_clear();
 
-		// Display total steps & elapsed time global vars (and "game won" msg)
-		// TODO: Finish code to display results on VGA
-		char tot_time_MMSS_msg[VGA_TEXT_MAX_SIZE];
-		sprintf(tot_time_MMSS_msg, "%.2d:%.2d", tot_time_MM, tot_time_SS);
+		// disp winning message
+		VGA_text(25, 20, "Congratulations! You escaped The Labyrinth!");
+		VGA_text(46, 22, ":D");
 
-		// TODO: Display option (south?) to reset game (to start screen)
+		// display total time elapsed
+		char tot_time_MMSS_msg[VGA_TEXT_MAX_SIZE];
+		sprintf(tot_time_MMSS_msg, "Total Time: %.2d:%.2d", tot_time_MM, tot_time_SS);
+
+		VGA_text(25, 30, tot_time_MMSS_msg);
+
+		// display total step count
+		char step_count_msg[VGA_TEXT_MAX_SIZE];
+		sprintf(step_count_msg, "Total Steps Taken: %d", step_count);
+
+		VGA_text(25, 35, step_count_msg);
+
+		// display option to reset game
+		VGA_disp_options(-1);
 
 		// after running once, wait until a new game is started (and finished)
 		value = OSFlagPend(GameStatus, GAME_RESET, OS_FLAG_WAIT_SET_ALL, 0, &err);
@@ -981,12 +1418,24 @@ void TaskDispGameOver(void* pdata) {
 	  VGA_clear();
 	  VGA_text_clear();
 
-		// Display total steps & elapsed time global vars (and "you lost" msg)
-		// TODO: Finish code to display losing results on VGA
-		char tot_time_MMSS_msg[VGA_TEXT_MAX_SIZE];
-		sprintf(tot_time_MMSS_msg, "%.2d:%.2d", tot_time_MM, tot_time_SS);
+		// disp losing message
+		VGA_text(30, 20, "The Minotaur got ya...");
+		VGA_text(38, 22, ">:0");
 
-		// TODO: Display option (south?) to reset game (to start screen)
+		// display total time elapsed
+		char tot_time_MMSS_msg[VGA_TEXT_MAX_SIZE];
+		sprintf(tot_time_MMSS_msg, "Total Time: %.2d:%.2d", tot_time_MM, tot_time_SS);
+
+		VGA_text(25, 30, tot_time_MMSS_msg);
+
+		// display total step count
+		char step_count_msg[VGA_TEXT_MAX_SIZE];
+		sprintf(step_count_msg, "Total Steps Taken: %d", step_count);
+
+		VGA_text(25, 35, step_count_msg);
+
+		// display option to reset game
+		VGA_disp_options(-1);
 
 		// after running once, wait until a new game is started (and finished)
 		value = OSFlagPend(GameStatus, GAME_RESET, OS_FLAG_WAIT_SET_ALL, 0, &err);
