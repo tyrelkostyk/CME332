@@ -45,7 +45,7 @@ int tot_time_rem_SS, tot_time_rem_MM;
 int tot_time_SS, tot_time_MM;
 
 // Gameplay Global Vars
-int sword_flag, key_flag, minotaur_gone_flag, minotaur_slain_flag; // inventory
+int sword_flag, key_flag, minotaur_gone_flag, minotaur_slain_flag;
 
 
 /* Definition of Semaphores & Mailboxes */
@@ -960,8 +960,6 @@ void TaskStartScreen(void* pdata) {
 	// Needs to stay until KEY0 is pressed
 	// Can only run in idle state; then after running once, pends until GAME_RESET is high
 
-	int seed_val = OSTimeGet(); // for random number generation
-
 	while(1) {
 
 		// Don't run until active / finished states are completed/inactive
@@ -972,20 +970,20 @@ void TaskStartScreen(void* pdata) {
 		VGA_clear();
 		VGA_text_clear();
 
-		// increment seed_val, reseed program for rand var
-		seed_val = OSTimeGet();
-		srand(seed_val);
-
 		// Reset Global Game Vars
-		location = 43; // TODO:
+		location = 0; // TODO: change back
 		step_count = 0;
 		time_250ms = 0;
-    step_time_rem_SS = 40;		// TODO: change back
+    step_time_rem_SS = 30;		// TODO: change back
 		max_step_time_rem = step_time_rem_SS;
     tot_time_rem_SS = 59;
     tot_time_rem_MM = 9;
 		tot_time_SS = 0;
 		tot_time_MM = 0;
+		sword_flag = 0;
+		key_flag = 0;
+		minotaur_gone_flag = 0;
+		minotaur_slain_flag = 0;
 
 		// display initial message
 		VGA_text(MSG_BASE_X, MSG_BASE_Y, LUT_location_msg[location]);
@@ -1112,7 +1110,7 @@ void TaskMakeChoice(void* pdata) {
 						location = 86;
 					} else {
 						location = 84;	// encounter Minotaur for first time
-						max_step_time_rem = (max_step_time_rem / 4);
+						max_step_time_rem = (max_step_time_rem / 3);
 					}
 					step_time_rem_SS = max_step_time_rem;
 					time_250ms = 0;
@@ -1256,16 +1254,35 @@ void TaskMakeChoice(void* pdata) {
 					// KEY2 press - fight Minotaur!!
 					KEY2_flag = 0;
 					if (sword_flag) {
+						// Minotaur is defeated!
 						minotaur_gone_flag = 1;
 						minotaur_slain_flag = 1;
 						location = 85;		// Minotaur is defeated!
-						max_step_time_rem = (max_step_time_rem * 4);
+						max_step_time_rem = (max_step_time_rem * 3);
 						step_time_rem_SS = max_step_time_rem;
 						time_250ms = 0;
 						step_count++;
 						value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
 					} else {
-						value = OSFlagPost(GameStatus, GAME_LOST, OS_FLAG_SET, &err);
+						// 50% chance of death, 50% chance slaying minotaur
+						int seed_val = OSTimeGet();			// reset seed_val, reseed program for rand_val
+						srand(seed_val);
+						int rand_val = (rand() % 10);		// random value between 0 and 9
+						printf("%d\n", rand_val);				// For debugging / demo purposes
+						if (rand_val >= 5) {
+							// Minotaur is defeated!
+							minotaur_gone_flag = 1;
+							minotaur_slain_flag = 1;
+							location = 85;		// Minotaur is defeated!
+							max_step_time_rem = (max_step_time_rem * 3);
+							step_time_rem_SS = max_step_time_rem;
+							time_250ms = 0;
+							step_count++;
+							value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+						} else {
+							// Minotaur kills you - game over!
+							value = OSFlagPost(GameStatus, GAME_LOST, OS_FLAG_SET, &err);
+						}
 					}
 				} else if ( !(KEY_val & KEY3) && (KEY3_flag) ) {
 					// KEY3 press - Run from the Minotaur!
