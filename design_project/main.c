@@ -47,6 +47,49 @@ int tot_time_SS, tot_time_MM;
 // Gameplay Global Vars
 int sword_flag, key_flag; // inventory
 
+
+/* Definition of Semaphores & Mailboxes */
+
+OS_EVENT	*LocSem;
+OS_EVENT	*MBoxRemStepTime;
+OS_EVENT	*MBoxRemTotTime;
+INT8U 		err;
+
+/* Definition of Event Flags */
+
+OS_FLAG_GRP *GameStatus;
+OS_FLAGS value;
+
+#define GAME_ACTIVE 				0x01  // 0 = IDLE, 1 = ACTIVE
+#define GAME_NEW_LOCATION		0x02  // 0 = No new location to render, 1 = New location to render (within ACTIVE state)
+#define GAME_FINISHED				0x04  // 0 = GAME ONGOING (or IDLE), 1 = GAME COMPLETED
+#define GAME_LOST						0x08	// 0 = GAME ONGONG (or IDLE), 1 = GAME LOST
+#define GAME_RESET					0x10  // 0 = GAME ONGOING (or IDLE), 1 = GAME RESET
+
+
+/* Definition of Task Stacks */
+
+#define   TASK_STACKSIZE       2048
+OS_STK    TaskStartScreen_Stk[TASK_STACKSIZE];
+OS_STK    TaskMakeChoice_stk[TASK_STACKSIZE];
+OS_STK    TaskStopwatch_stk[TASK_STACKSIZE];
+OS_STK    TaskDispNewLocation_stk[TASK_STACKSIZE];
+OS_STK    TaskDispRemTime_stk[TASK_STACKSIZE];
+OS_STK    TaskDispResults_stk[TASK_STACKSIZE];
+OS_STK    TaskDispGameOver_stk[TASK_STACKSIZE];
+
+
+/* Definition of Task Priorities */
+
+#define TASKMAKECHOICE_PRIORITY				5
+#define TASKSTOPWATCH_PRIORITY				6
+#define TASKDISPNEWLOCATION_PRIORITY	10
+#define TASKDISPREMTIME_PRIORITY    	11
+#define TASKDISPRESULTS_PRIORITY    	12
+#define TASKDISPGAMEOVER_PRIORITY    	13
+#define TASKSTARTSCREEN_PRIORITY			14
+
+
 /* Definitions of LUTs for unique properties of each labyrinth location */
 
 // lut for what buttons can be pressed (and do something) for each location
@@ -137,8 +180,8 @@ const char LUT_location_permissions [MAX_LOCATIONS] = {
 	KEY1+KEY2,								// 82; 1st Action spot for Loc 35 (first time only): North (pick up), South (leave)
 	KEY1,											// 83; 2nd Action spot for Loc 35 (after pick up only): South (leave)
 	KEY2+KEY3,								// 84; 1st Action spot for Loc 40 (first time only): North (fight), west (run)
-	KEY2,											// 85; 2nd Action spot for Loc 40 (fight & win OR run & return): North (investigate)
-	KEY0+KEY3,								// 86; 3rd Action spot for Loc 40 (after investigate): East (secret exit), West
+	KEY2,											// 85; 2nd Action spot for Loc 40 (fight & win): North (investigate)
+	KEY2,											// 86; 3rd Action spot for Loc 40 (run & return): North (investigate)
 	KEY3,											// 87; Action spot for Loc 39 (after running only, once): West (keep running!)
 	KEY1,											// 88; Action spot for Loc 50 (only after fighting & taking secret exit): South
 	KEY1,											// 89; Action spot for Loc 72 (Only after getting key): South (to win!)
@@ -147,73 +190,73 @@ const char LUT_location_permissions [MAX_LOCATIONS] = {
 // lut for what message to display at each location
 const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
   "You awake in a pitch black room of cold, hard stone. You hear an oddly         familiar growl in the distance...",  			// Loc 0: Start Screen
-	"You continue down a dark hallway, the faint sound of dripping ahead.           The only way to go is forward.",  				// Loc 1
-	"The hallway continues, no end in sight. The dripping gets louder...            In the distance, you hear footsteps...",	// Loc 2
-	"You continue, the footsteps stop abruptly. A dark tar-like substance is        dripping into a puddle beside you.",			// Loc 3
-	"Further along the hallway, you notice how hot you are. There must be a         furnace nearby.",													// loc 4
-	"Finally, the hallway ends. It's a simple wooden door, with a latch on it.",		// Loc 5
-	"Test msg loc 6",			// Loc 6
-	"Test msg loc 7",			// Loc 7
-	"You're in a corner, behind a moldy pillar. You hear something scratching       from the inside...",			// Loc 8
-	"Error: Loc 9 is an invalid location",		// Loc 9 (not a valid spot)
-	"Test msg loc 10",		// Loc 10
-	"Test msg loc 11",		// Loc 11
-	"Test msg loc 12",		// Loc 12
-	"Test msg loc 13",		// Loc 13
-	"Test msg loc 14",		// Loc 14
-	"Test msg loc 15",		// Loc 15
-	"Error: Loc 16 is an invalid location",		// Loc 16 (not a valid spot)
-	"Test msg loc 17",		// Loc 17
-	"Test msg loc 18",		// Loc 18
-	"Test msg loc 19",		// Loc 19
-	"Test msg loc 20",		// Loc 20
-	"Test msg loc 21",		// Loc 21
-	"Test msg loc 22",		// Loc 22
-	"Test msg loc 23",		// Loc 23
-	"Test msg loc 24",		// Loc 24
-	"Test msg loc 25",		// Loc 25
-	"Test msg loc 26",		// Loc 26
-	"Test msg loc 27",		// Loc 27
-	"Test msg loc 28",		// Loc 28
-	"Test msg loc 29",		// Loc 29
-	"Test msg loc 30",		// Loc 30
-	"Test msg loc 31",		// Loc 31
-	"Test msg loc 32",		// Loc 32
-	"Test msg loc 33",		// Loc 33
-	"Test msg loc 34",		// Loc 34
-	"Test msg loc 35",		// Loc 35
-	"Test msg loc 36",		// Loc 36
-	"Test msg loc 37",		// Loc 37
-	"Test msg loc 38",		// Loc 38
-	"Test msg loc 39",		// Loc 39
-	"Test msg loc 40",		// Loc 40
-	"Test msg loc 41",		// Loc 41
-	"Test msg loc 42",		// Loc 42
-	"Test msg loc 43",		// Loc 43
-	"You see a body on the floor North of you!",		// Loc 44
-	"Test msg loc 45",		// Loc 45
-	"Test msg loc 46",		// Loc 46
-	"Test msg loc 47",		// Loc 47
-	"Test msg loc 48",		// Loc 48
-	"Test msg loc 49",		// Loc 49
-	"Test msg loc 50",		// Loc 50
-	"Test msg loc 51",		// Loc 51
-	"Test msg loc 52",		// Loc 52
-	"Test msg loc 53",		// Loc 53
-	"Test msg loc 54",		// Loc 54
-	"Test msg loc 55",		// Loc 55
-	"Test msg loc 56",		// Loc 56
-	"Test msg loc 57",		// Loc 57
-	"Test msg loc 58",		// Loc 58
-	"Test msg loc 59",		// Loc 59
-	"Test msg loc 60",		// Loc 60
-	"Test msg loc 61",		// Loc 61
-	"Test msg loc 62",		// Loc 62
-	"Test msg loc 63",		// Loc 63
-	"Test msg loc 64",		// Loc 64
-	"Test msg loc 65",		// Loc 65
-	"Test msg loc 66",		// Loc 66
-	"Test msg loc 67",		// Loc 67
+	"You continue down a dark hallway.																	            The only way to go is forward.",  				// Loc 1
+	"The hallway continues, no end in sight. You see writing on the wall ahead...   In the distance, you hear footsteps...",	// Loc 2
+	"You continue, and the footsteps stop abruptly. On the wall reads        				'None shall escape the Labyrinth'",				// Loc 3
+	"Further along the hallway, you notice how hot you are.",																																	// loc 4
+	"Finally, the hallway ends. It's a simple wooden door, with a latch on it.",																							// Loc 5
+	"You're back at the locked door from which you came... still locked.",																										// Loc 6
+	"You're north of a rotten pillar... god does it stink.",																																	// Loc 7
+	"You're in a corner, behind the moldy pillar. You hear something scratching     from the inside...",											// Loc 8
+	"Error: Loc 9 is an invalid location",																																										// Loc 9 (not a valid spot)
+	"The Shrine appears to depict a fierce golden bull creature, wrapped in chains.",																					// Loc 10
+	"The corridor continues to twist & turn.",																																								// Loc 11
+	"You continue along another corner of the corridor.",																																			// Loc 12
+	"To the North, a painting depicting nothing but a dreadful pair of eyes...      They appear to be following your movement.",				// Loc 13
+	"You're in a twisting corridor.                                                 Off in the distance, you hear chains rattling.",		// Loc 14
+	"You're in a short hallway. There's a dank pillar to the East.",																													// Loc 15
+	"Error: Loc 16 is an invalid location",																																										// Loc 16 (not a valid spot)
+	"You're behind the pillar. To the West, you see 'No Way Out' inscribed on the   wall... that's definitely not red paint...",				// Loc 17
+	"A long dark hallway is to the South, and multiple corridors to the West.",																								// Loc 18
+	"The corridor splits, opening in all directions. But to the North, you spot     what looks like a weird glowing Shrine...",					// Loc 19
+	"You're at the end of the corridor, which opens up North of you.",																												// Loc 20
+	"The corridor continues.",																																																// Loc 21
+	"You make another turn within the corridor. More rattling chains.",																												// Loc 22
+	"You're at the start of a twisting corridor, which opens up North of you.",																								// Loc 23
+	"The Labyrinth opens up in all directions.",																																							// Loc 24
+	"You're in a tight passage way between a wall, and the pillar North of you.",																							// Loc 25
+	"You're in a corner, behind the pillar. Did you just hear a scream?",																											// Loc 26
+	"You're in the long dark hallway.",		// Loc 27
+	"A long dark hallway continues East of you, but Jesus does it stink.",		// Loc 28
+	"The stench lingers, and the hallway continues.",		// Loc 29
+	"Christ, what could that smell possibly be?!",		// Loc 30
+	"The corridor continues West of you, but ends to the East.",		// Loc 31
+	"You stumble upon what looks like the Triceratops poop from Jurassic Park...    You hear Jeff Goldblum's 'That's one big pile of shit' in your head.",		// Loc 32
+	"You continue through a narrow hallway, but jesus does something smell awful.",		// Loc 33
+	"Error: Loc 34 is an invalid location",		// Loc 34
+	"Something must have ripped the Knight's head off... ",		// Loc 35
+	"As the hallway continues, a painting of what looks like the apocalypse         is hung on the Eastern wall. ",		// Loc 36
+	"You're at a corner which opens to the East & South.",		// Loc 37
+	"You're in a hallway, and there are bones riddled everywhere...",		// Loc 38
+	"There's some sort of Den to the East, and a corridor to the West",		// Loc 39
+	"The Minotaur's Den reeks of death.",		// Loc 40
+	"It's a dead end.",		// Loc 41
+	"The Labyrinth opens in all directions again.",		// Loc 42
+	"You walk along a short corridor.",		// Loc 43
+	"There's a dead body on the floor North of you...",		// Loc 44
+	"The corridor continues running North & South.",		// Loc 45
+	"Corridors open to the North & West. A nook opens up to the South.",		// Loc 46
+	"You step in something sticky... gross.",		// Loc 47
+	"You hear heavy breathing North of you, but see nothing in the corridor...",		// Loc 48
+	"The Labyrinth bends 90 degrees.",		// Loc 49
+	"It's a dead end, with nothing but dirt and mold.",		// Loc 50
+	"This hallway stinks. It continues North & South",		// Loc 51
+	"You come across a heaping pile of rotten bones... some of them look fresh...",		// Loc 52
+	"The labyrinth opens to the North, and curves around a corner to the South.",		// Loc 53
+	"The corridor continues.",		// Loc 54
+	"It's a dead end, but there's some mysterious green slime on the walls...       Is it moving?!",		// Loc 55
+	"Error: Loc 56 is an invalid location",		// Loc 56
+	"Error: Loc 57 is an invalid location",		// Loc 57
+	"A corridor continues to the North, and the labyrinth opens in all directions   to the South.",		// Loc 58
+	"A dead end lingers to the North.                                               You hear evil laughter in the distance...",		// Loc 59
+	"The hallway continues to the North, and opens up to the South",		// Loc 60
+	"Something smells seriously dreadful...",		// Loc 61
+	"Okay, who farted? It reeks around this corner.",		// Loc 62
+	"You find yourself in a corner, With dark, endless corridors spilling out to    the North & East.",		// Loc 63
+	"There corridor ends to the West, but continues without an end in sight         to the East.",		// Loc 64
+	"You slash your way through some cobwebs, continuing down the corridor.",		// Loc 65
+	"The corridor continues.",		// Loc 66
+	"The Labyrinth opens to the North, and continues running East/West.",		// Loc 67
 	"Test msg loc 68",		// Loc 68
 	"Test msg loc 69",		// Loc 69
 	"Test msg loc 70",		// Loc 70
@@ -228,20 +271,20 @@ const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"Test msg loc 79",		// Loc 79
 	"Test msg loc 80",		// Loc 80
 	// Action Locations
-	"You close the door behind you, and immediately hear it be aggresively locked.  You try to open it, but it's barred from the other side...",		// Loc 81
-	"This guy must've been some sort of Knight, before he lost his head...          He's got something strapped to his belt... it looks like a Sword!",		// Loc 82
-	"The Sword fits perfectly in your hand, and has a slight glow to it.            It doesn't have even a drop of blood on it...",		// Loc 83
-	"Test msg loc 84",		// Loc 84
-	"Test msg loc 85",		// Loc 85
-	"Test msg loc 86",		// Loc 86
-	"Test msg loc 87",		// Loc 87
-	"Test msg loc 88",		// Loc 88
-	"The door is locked, but the key looks the right size!"			// Loc 89
+	"You close the door behind you, and immediately hear it be aggresively locked.  You try to open it, but it's barred from the other side...",		// 81; Action spot for loc 6
+	"This guy must've been some sort of Knight, before he lost his head...          He's got something strapped to his belt... it looks like a Sword!",		// 82; 1st Action spot for loc 35
+	"The Sword fits perfectly in your hand, and has a slight glow to it.            It doesn't have even a drop of blood on it...",									// 83; 2nd Action spot for loc 35
+	"You walked right into the Minotaur's Den! It gets up, ready to attack!",																																				// 84; 1st Action spot for loc 40
+	"You have slain the Minotaur!! And there's a Key in the back of his Den.,       And it looks like there's some sort of secret passage..."				// 85; 2nd Action spot for loc 40
+	"The Minotaur isn't here.. for now. But there's a Key in the back of his Den.   And it looks like there's some sort of secret passage...",			// 86; 3rd Action spot for loc 40
+	"The Minotaur is right behind you!! Don't stop!!!",																																															// 87; Action spot for loc 39
+	"You exit the secret tunnel at the end of a corridor. South is the only option.",																																// 88; Action spot for loc 50
+	"The key looks the right size! Quick, escape!!"																																																	// 89; Action spot for loc 72
 };
 
 // lut for the main question to ask at each location
 const char LUT_location_question [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
-  "You fumble around in the dark and find a candle, and some matchsticks. Will    you light the canlde & begin your journey?",  // Loc 0: Start screen
+  "You fumble around in the dark and find a compass, a candle, and                some matchsticks. Will you light the canlde & begin your journey?",  // Loc 0: Start screen
 	"Continue forward?",  // Loc 1
 	"Continue forward?",  // Loc 2
 	"Continue forward?",  // Loc 3
@@ -378,10 +421,11 @@ const char LUT_loc_north_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	" ",								// Loc 38: no north option
 	" ",								// Loc 39: no north option
 	" ",								// Loc 40: no north option
-	" ",								// Loc 41: no north option
+	" ",								// Loc 41: no			offset = (y << 7) + x;
+ north option
 	"KEY2: Go North",		// Loc 42
 	" ",								// Loc 43: no north option
-	"KEY2: Go North to check out body",		// Loc 44
+	"KEY2: Go North to examine body",		// Loc 44
 	"KEY2: Go North",		// Loc 45
 	"KEY2: Go North",		// Loc 46
 	" ",								// Loc 47: no north option
@@ -472,7 +516,7 @@ const char LUT_loc_east_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"KEY0: Go East",		// Loc 37
 	"KEY0: Go East",		// Loc 38
 	"KEY0: Go East",		// Loc 39
-	"KEY0: Go East",		// Loc 40
+	"KEY0: Go Through the Minotaur's Secret tunnel",		// Loc 40
 	"KEY0: Go East",		// Loc 41
 	"KEY0: Go East",		// Loc 42
 	"KEY0: Go East",		// Loc 43
@@ -519,7 +563,7 @@ const char LUT_loc_east_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	" ",								// 83: 2nd Action for loc 35; no east option
 	" ",								// 84: 1st Action for loc 40; no east option
 	" ",								// 85: 2nd Action for loc 40; no east option
-	"KEY0: Crawl into Secret Tunnel",		// 86: Action for loc 40
+	"KEY0: Crawl into Secret Tunnel",		// 86: 3rd Action for loc 40
 	" ",								// 87: 1st Action for loc 32; no east option
 	" ",								// 88: Action for loc 50; no east option
 	" "									// 89: Action for loc 72; no east option
@@ -690,47 +734,6 @@ const char LUT_loc_west_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 		" ",								// 88: Action for loc 50; no west option
 		" ",								// 89: Action for loc 72; no west option
 };
-
-/* Definition of Semaphores & Mailboxes */
-
-OS_EVENT	*LocSem;
-OS_EVENT	*MBoxRemStepTime;
-OS_EVENT	*MBoxRemTotTime;
-INT8U 		err;
-
-/* Definition of Event Flags */
-
-OS_FLAG_GRP *GameStatus;
-OS_FLAGS value;
-
-#define GAME_ACTIVE 				0x01  // 0 = IDLE, 1 = ACTIVE
-#define GAME_NEW_LOCATION		0x02  // 0 = No new location to render, 1 = New location to render (within ACTIVE state)
-#define GAME_FINISHED				0x04  // 0 = GAME ONGOING (or IDLE), 1 = GAME COMPLETED
-#define GAME_LOST						0x08	// 0 = GAME ONGONG (or IDLE), 1 = GAME LOST
-#define GAME_RESET					0x10  // 0 = GAME ONGOING (or IDLE), 1 = GAME RESET
-
-
-/* Definition of Task Stacks */
-
-#define   TASK_STACKSIZE       2048
-OS_STK    TaskStartScreen_Stk[TASK_STACKSIZE];
-OS_STK    TaskMakeChoice_stk[TASK_STACKSIZE];
-OS_STK    TaskStopwatch_stk[TASK_STACKSIZE];
-OS_STK    TaskDispNewLocation_stk[TASK_STACKSIZE];
-OS_STK    TaskDispRemTime_stk[TASK_STACKSIZE];
-OS_STK    TaskDispResults_stk[TASK_STACKSIZE];
-OS_STK    TaskDispGameOver_stk[TASK_STACKSIZE];
-
-
-/* Definition of Task Priorities */
-
-#define TASKMAKECHOICE_PRIORITY				5
-#define TASKSTOPWATCH_PRIORITY				6
-#define TASKDISPNEWLOCATION_PRIORITY	10
-#define TASKDISPREMTIME_PRIORITY    	11
-#define TASKDISPRESULTS_PRIORITY    	12
-#define TASKDISPGAMEOVER_PRIORITY    	13
-#define TASKSTARTSCREEN_PRIORITY			14
 
 
 /* Supporting Functions */
@@ -954,7 +957,7 @@ void TaskStartScreen(void* pdata) {
 		location = 0;
 		step_count = 0;
 		time_250ms = 0;
-    step_time_rem_SS = 20;		// TODO: change back
+    step_time_rem_SS = 30;		// TODO: change back
 		max_step_time_rem = step_time_rem_SS;
     tot_time_rem_SS = 0;
     tot_time_rem_MM = 5;
@@ -1088,7 +1091,11 @@ void TaskMakeChoice(void* pdata) {
 				} else if ( !(KEY_val & KEY2) && (KEY2_flag) ) {
 					// KEY2 press - go to location of sword
 					KEY2_flag = 0;
-					location = 82;		// go to location w/ sword on floor
+					if (sword_flag) {
+						location = 35;		// go to location where sword used to be (already picked it up)
+					} else {
+						location = 82;		// go to location w/ sword on floor
+					}
 					step_time_rem_SS = max_step_time_rem;
 					time_250ms = 0;
 					step_count++;
