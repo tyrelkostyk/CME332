@@ -25,7 +25,7 @@
 #define NORTH_MSG_BASE_X			31
 #define NORTH_MSG_BASE_Y			33
 
-#define EAST_MSG_BASE_X				45
+#define EAST_MSG_BASE_X				44
 #define EAST_MSG_BASE_Y				41
 
 #define SOUTH_MSG_BASE_X			31
@@ -45,7 +45,7 @@ int tot_time_rem_SS, tot_time_rem_MM;
 int tot_time_SS, tot_time_MM;
 
 // Gameplay Global Vars
-int sword_flag, key_flag; // inventory
+int sword_flag, key_flag, minotaur_gone_flag; // inventory
 
 
 /* Definition of Semaphores & Mailboxes */
@@ -180,8 +180,8 @@ const char LUT_location_permissions [MAX_LOCATIONS] = {
 	KEY1+KEY2,								// 82; 1st Action spot for Loc 35 (first time only): North (pick up), South (leave)
 	KEY1,											// 83; 2nd Action spot for Loc 35 (after pick up only): South (leave)
 	KEY2+KEY3,								// 84; 1st Action spot for Loc 40 (first time only): North (fight), west (run)
-	KEY2,											// 85; 2nd Action spot for Loc 40 (fight & win): North (investigate)
-	KEY2,											// 86; 3rd Action spot for Loc 40 (run & return): North (investigate)
+	KEY0,											// 85; 2nd Action spot for Loc 40 (fight & win): East (grab key & leave)
+	KEY0,											// 86; 3rd Action spot for Loc 40 (run & return): East (grab key & leave)
 	KEY3,											// 87; Action spot for Loc 39 (after running only, once): West (keep running!)
 	KEY1,											// 88; Action spot for Loc 50 (only after fighting & taking secret exit): South
 	KEY1,											// 89; Action spot for Loc 72 (Only after getting key): South (to win!)
@@ -190,10 +190,10 @@ const char LUT_location_permissions [MAX_LOCATIONS] = {
 // lut for what message to display at each location
 const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
   "You awake in a pitch black room of cold, hard stone. You hear an oddly         familiar growl in the distance...",  			// Loc 0: Start Screen
-	"You continue down a dark hallway.																	            The only way to go is forward.",  				// Loc 1
+	"You continue down a dark hallway.                                              The only way to go is forward.",  				// Loc 1
 	"The hallway continues, no end in sight. You see writing on the wall ahead...   In the distance, you hear footsteps...",	// Loc 2
-	"You continue, and the footsteps stop abruptly. On the wall reads        				'None shall escape the Labyrinth'",				// Loc 3
-	"Further along the hallway, you notice how hot you are.",																																	// loc 4
+	"You continue, and the footsteps stop abruptly. On the wall reads               'None shall escape the Labyrinth'",				// Loc 3
+	"Further along the hallway, you notice how hot you are. Where is the heat       coming from??",															// loc 4
 	"Finally, the hallway ends. It's a simple wooden door, with a latch on it.",																							// Loc 5
 	"You're back at the locked door from which you came... still locked.",																										// Loc 6
 	"You're north of a rotten pillar... god does it stink.",																																	// Loc 7
@@ -257,26 +257,26 @@ const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"You slash your way through some cobwebs, continuing down the corridor.",		// Loc 65
 	"The corridor continues.",		// Loc 66
 	"The Labyrinth opens to the North, and continues running East/West.",		// Loc 67
-	"Test msg loc 68",		// Loc 68
-	"Test msg loc 69",		// Loc 69
-	"Test msg loc 70",		// Loc 70
-	"Test msg loc 71",		// Loc 71
-	"Test msg loc 72",		// Loc 72
-	"Test msg loc 73",		// Loc 73
-	"Test msg loc 74",		// Loc 74
-	"Test msg loc 75",		// Loc 75
-	"Test msg loc 76",		// Loc 76
-	"Test msg loc 77",		// Loc 77
-	"Test msg loc 78",		// Loc 78
-	"Test msg loc 79",		// Loc 79
-	"Test msg loc 80",		// Loc 80
+	"Corridor opens, all directions are available.",		// Loc 68
+	"A long, endless corridor opens to the North. Can also go East / West",		// Loc 69
+	"The corridor continues to the East, around a corner.",		// Loc 70
+	"To the South, you spot some cracks in the wall. It's bright on the other side, and super hot.",		// Loc 71
+	"There's a door! You can hear birds chirping on the other side!                 But damn, it's locked!",		// Loc 72
+	"There's a door to the West!",		// Loc 73
+	"There appears to be a light source up ahead!",		// Loc 74
+	"This hallway smells like all the rest... shit.",		// Loc 75
+	"The corridor continues.",		// Loc 76
+	"The corridor continues to the West, opens to the North, and has a dead-end     to the East.",		// Loc 77
+	"It's a dead-end.",		// Loc 78
+	"Error: Loc 34 is an invalid location",		// Loc 79
+	"You look through the cracks and see nothing but fire, as if peering into a     furnance. You swear you hear screams from within...",		// Loc 80
 	// Action Locations
 	"You close the door behind you, and immediately hear it be aggresively locked.  You try to open it, but it's barred from the other side...",		// 81; Action spot for loc 6
 	"This guy must've been some sort of Knight, before he lost his head...          He's got something strapped to his belt... it looks like a Sword!",		// 82; 1st Action spot for loc 35
 	"The Sword fits perfectly in your hand, and has a slight glow to it.            It doesn't have even a drop of blood on it...",									// 83; 2nd Action spot for loc 35
 	"You walked right into the Minotaur's Den! It gets up, ready to attack!",																																				// 84; 1st Action spot for loc 40
-	"You have slain the Minotaur!! And there's a Key in the back of his Den.,       And it looks like there's some sort of secret passage..."				// 85; 2nd Action spot for loc 40
-	"The Minotaur isn't here.. for now. But there's a Key in the back of his Den.   And it looks like there's some sort of secret passage...",			// 86; 3rd Action spot for loc 40
+	"You have slain the Minotaur!! And there's a Key in the back of his Den!        And it looks like there's some sort of secret passage...",			// 85; 2nd Action spot for loc 40
+	"The Minotaur isn't here.. for now. But there's a Key in the back of his Den!   And it looks like there's some sort of secret passage...",			// 86; 3rd Action spot for loc 40
 	"The Minotaur is right behind you!! Don't stop!!!",																																															// 87; Action spot for loc 39
 	"You exit the secret tunnel at the end of a corridor. South is the only option.",																																// 88; Action spot for loc 50
 	"The key looks the right size! Quick, escape!!"																																																	// 89; Action spot for loc 72
@@ -421,8 +421,7 @@ const char LUT_loc_north_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	" ",								// Loc 38: no north option
 	" ",								// Loc 39: no north option
 	" ",								// Loc 40: no north option
-	" ",								// Loc 41: no			offset = (y << 7) + x;
- north option
+	" ",								// Loc 41: no north option
 	"KEY2: Go North",		// Loc 42
 	" ",								// Loc 43: no north option
 	"KEY2: Go North to examine body",		// Loc 44
@@ -467,8 +466,8 @@ const char LUT_loc_north_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"KEY2: Pick Up Sword!",		// 82: Action for loc 35
 	" ",											// 83: no north option
 	"KEY2: Fight!",						// 84: 1st Action for loc 40
-	"KEY2: Investigate",			// 85: 2nd Action for loc 40
-	" ",								// 86: Action for loc 40; no north option
+	" ",								// 85: 2nd Action for loc 40; no north option
+	" ",								// 86: 3rd Action for loc 40; no north option
 	" ",								// 87: Action for loc 39; no north option
 	" ",								// 88: Action for loc 50; no north option
 	" "									// 89: Action for loc 72; no north option
@@ -510,13 +509,13 @@ const char LUT_loc_east_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"KEY0: Go East",		// Loc 31
 	" ",								// Loc 32: no east option
 	" ",								// Loc 33: no east option
-	" ",								// Loc 34: no east option (invalid spot)
+	" ",								// Loc 34: no east option (invalid location)
 	" ",								// Loc 35: no east option
 	" ",								// Loc 36: no east option
 	"KEY0: Go East",		// Loc 37
 	"KEY0: Go East",		// Loc 38
 	"KEY0: Go East",		// Loc 39
-	"KEY0: Go Through the Minotaur's Secret tunnel",		// Loc 40
+	"KEY0: Crawl Through Secret tunnel",		// Loc 40
 	"KEY0: Go East",		// Loc 41
 	"KEY0: Go East",		// Loc 42
 	"KEY0: Go East",		// Loc 43
@@ -562,8 +561,8 @@ const char LUT_loc_east_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	" ",								// 82: 1st Action for loc 35; no east option
 	" ",								// 83: 2nd Action for loc 35; no east option
 	" ",								// 84: 1st Action for loc 40; no east option
-	" ",								// 85: 2nd Action for loc 40; no east option
-	"KEY0: Crawl into Secret Tunnel",		// 86: 3rd Action for loc 40
+	"KEY0: Grab Key, Crawl into Tunnel",		// 85: 2nd Action for loc 40
+	"KEY0: Grab Key, Crawl into Tunnel",		// 86: 3rd Action for loc 40
 	" ",								// 87: 1st Action for loc 32; no east option
 	" ",								// 88: Action for loc 50; no east option
 	" "									// 89: Action for loc 72; no east option
@@ -673,40 +672,49 @@ const char LUT_loc_west_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	" ",								// Loc 4: no west option
 	" ",								// Loc 5: no west option
 	" ",								// Loc 6: no west option
-	"KEY1: Go West",		// Loc 7
-	"KEY1: Go West",		// Loc 8
+	"KEY3: Go West",		// Loc 7
+	"KEY3: Go West",		// Loc 8
 	" ",								// Loc 9: no west option (invalid spot)
 	" ",								// Loc 10: no west option
 	" ",								// Loc 11: no west option
-	"KEY1: Go West",		// Loc 12
+	"KEY3: Go West",		// Loc 12
 	" ",								// Loc 13: no west option
-	"KEY1: Go West",		// Loc 14
+	"KEY3: Go West",		// Loc 14
 	" ",								// Loc 15: no west option
 	" ",								// Loc 16: no west option (invalid spot)
 	" ",								// Loc 17: no west option
 	" ",								// Loc 18: no west option
-	"KEY1: Go West",		// Loc 19
-	"KEY1: Go West",		// Loc 20
+	"KEY3: Go West",		// Loc 19
+	"KEY3: Go West",		// Loc 20
 	" ",								// Loc 21: no west option
-	"KEY1: Go West",		// Loc 22
+	"KEY3: Go West",		// Loc 22
 	" ",								// Loc 23: no west option
-	"KEY1: Go West",		// Loc 24
-	"KEY1: Go West",		// Loc 25
-	"KEY1: Go West",		// Loc 26
+	"KEY3: Go West",		// Loc 24
+	"KEY3: Go West",		// Loc 25
+	"KEY3: Go West",		// Loc 26
 	" ",								// Loc 27: no west option
 	" ",								// Loc 28: no west option
-	"KEY1: Go West",		// Loc 29
-	"KEY1: Go West",		// Loc 30
-	"KEY1: Go West",		// Loc 31
-	"KEY1: Go West",		// Loc 32
+	"KEY3: Go West",		// Loc 29
+	"KEY3: Go West",		// Loc 30
+	"KEY3: Go West",		// Loc 31
+	"KEY3: Go West",		// Loc 32
 	" ",								// Loc 33: no west option
 	" ",								// Loc 34: no west option (invalid spot)
 	" ",								// Loc 35: no west option
 	" ",								// Loc 36: no west option
 	" ",								// Loc 37: no west option
+	"KEY3: Go West",		// Loc 38
+	"KEY3: Go West",		// Loc 39
+	"KEY3: Go West",		// Loc 40
 	" ",								// Loc 41: no west option
+	"KEY3: Go West",		// Loc 42
+	"KEY3: Go West",		// Loc 43
+	"KEY3: Go West",		// Loc 44
 	" ",								// Loc 45: no west option
 	" ",								// Loc 46: no west option
+	"KEY3: Go West",		// Loc 47
+	"KEY3: Go West",		// Loc 48
+	"KEY3: Go West",		// Loc 49
 	" ",								// Loc 50: no west option
 	" ",								// Loc 51: no west option
 	" ",								// Loc 52: no west option
@@ -718,9 +726,24 @@ const char LUT_loc_west_option [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	" ",								// Loc 58: no west option
 	" ",								// Loc 59: no west option
 	" ",								// Loc 60: no west option
-	" ",								// Loc 62: no west option
+	" ",								// Loc 61: no west option
+	"KEY3: Go West",		// Loc 62
 	" ",								// Loc 63: no west option
+	"KEY3: Go West",		// Loc 64
+	"KEY3: Go West",		// Loc 65
+	"KEY3: Go West",		// Loc 66
+	"KEY3: Go West",		// Loc 67
+	"KEY3: Go West",		// Loc 68
+	"KEY3: Go West",		// Loc 69
+	"KEY3: Go West",		// Loc 70
+	"KEY3: Go West",		// Loc 71
 	" ",								// Loc 72: no west option
+	"KEY3: Go West",		// Loc 73
+	"KEY3: Go West",		// Loc 74
+	"KEY3: Go West",		// Loc 75
+	"KEY3: Go West",		// Loc 76
+	"KEY3: Go West",		// Loc 77
+	"KEY3: Go West",		// Loc 78
 	" ",								// Loc 79: no west option (invalid spot)
 	" ",								// Loc 80: no west option
 		// ACTION SPOTS
@@ -957,10 +980,10 @@ void TaskStartScreen(void* pdata) {
 		location = 0;
 		step_count = 0;
 		time_250ms = 0;
-    step_time_rem_SS = 30;		// TODO: change back
+    step_time_rem_SS = 40;		// TODO: change back
 		max_step_time_rem = step_time_rem_SS;
-    tot_time_rem_SS = 0;
-    tot_time_rem_MM = 5;
+    tot_time_rem_SS = 59;
+    tot_time_rem_MM = 9;
 		tot_time_SS = 0;
 		tot_time_MM = 0;
 
@@ -1079,6 +1102,50 @@ void TaskMakeChoice(void* pdata) {
 						value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
 					}
 
+			} else if (location == 39) {
+				if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
+					// KEY0 press - go East into Minotaur's Den
+					KEY0_flag = 0;
+					if (minotaur_gone_flag && key_flag) {
+						location = 40;
+					} else if (minotaur_gone_flag && (!key_flag)) {
+						location = 86;	// encounter Minotaur for first time
+					} else {
+						location = 84;
+					}
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				} else if ( !(KEY_val & KEY3) && (KEY3_flag) ) {
+					// KEY3 press - Typically means go West (leftwards)
+					KEY3_flag = 0;
+					location = 38;		// increment place in map by 9
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				}
+
+			} else if (location == 40) {
+				if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
+					// KEY0 press - Travel through secret tunnel to location 50
+					KEY0_flag = 0;
+					location = 88;
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				} else if ( !(KEY_val & KEY3) && (KEY3_flag) ) {
+					// KEY3 press - Typically means go West (leftwards)
+					KEY3_flag = 0;
+					location = 39;		// increment place in map by 9
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				}
+
 			} else if (location == 44) {
 				if ( !(KEY_val & KEY1) && (KEY1_flag) ) {
 					// KEY1 press - Typically means go South (downwards)
@@ -1104,6 +1171,29 @@ void TaskMakeChoice(void* pdata) {
 					// KEY3 press - Typically means go West (leftwards)
 					KEY3_flag = 0;
 					location = 43;		// increment place in map by 9
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				}
+
+			} else if (location == 73) {
+				if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
+					// KEY0 press - Typically means go East (rightwards)
+					KEY0_flag = 0;
+					location = 74;
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				} else if ( !(KEY_val & KEY3) && (KEY3_flag) ) {
+					// KEY3 press - Typically means go West (leftwards)
+					KEY3_flag = 0;
+					if (key_flag) {
+						location = 89;
+					} else {
+						location = 72;
+					}
 					step_time_rem_SS = max_step_time_rem;
 					time_250ms = 0;
 					step_count++;
@@ -1158,6 +1248,85 @@ void TaskMakeChoice(void* pdata) {
 					time_250ms = 0;
 					step_count++;
 					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				}
+
+			} else if (location == 84) {
+				if ( !(KEY_val & KEY2) && (KEY2_flag) ) {
+					// KEY2 press - fight Minotaur!!
+					KEY2_flag = 0;
+					if (sword_flag) {
+						minotaur_gone_flag = 1;
+						location = 85;		// Minotaur is defeated!
+						step_time_rem_SS = max_step_time_rem;
+						time_250ms = 0;
+						step_count++;
+						value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+					} else {
+						value = OSFlagPost(GameStatus, GAME_LOST, OS_FLAG_SET, &err);
+					}
+				} else if ( !(KEY_val & KEY3) && (KEY3_flag) ) {
+					// KEY3 press - Run from the Minotaur!
+					KEY3_flag = 0;
+					minotaur_gone_flag = 1;
+					location = 87;	// run from minotaur
+					max_step_time_rem = (max_step_time_rem / 2);
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				}
+
+			} else if (location == 85) {
+				if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
+					// KEY0 press - grab key & escape!
+					KEY0_flag = 0;
+					key_flag = 1;
+					location = 88;		// Minotaur is defeated!
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				}
+
+			} else if (location == 86) {
+				if ( !(KEY_val & KEY0) && (KEY0_flag) ) {
+					// KEY0 press - grab key & escape!
+					KEY0_flag = 0;
+					key_flag = 1;
+					location = 88;		// Minotaur is chasing you!
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				}
+
+			} else if (location == 87) {
+				if ( !(KEY_val & KEY3) && (KEY3_flag) ) {
+					// KEY3 press - KEEP RUNNING!
+					KEY3_flag = 0;
+					location = 38;		// Minotaur is CHASING YOU!
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				}
+
+			} else if (location == 88) {
+				if ( !(KEY_val & KEY1) && (KEY1_flag) ) {
+					// KEY1 press - go South towards the exit!
+					KEY1_flag = 0;
+					location = 59;
+					step_time_rem_SS = max_step_time_rem;
+					time_250ms = 0;
+					step_count++;
+					value = OSFlagPost(GameStatus, GAME_NEW_LOCATION, OS_FLAG_SET, &err);
+				}
+
+			} else if (location == 89) {
+				if ( !(KEY_val & KEY1) && (KEY1_flag) ) {
+					// KEY1 press - Escape to Vicotry!!
+					KEY1_flag = 0;
+					value = OSFlagPost(GameStatus, GAME_FINISHED, OS_FLAG_SET, &err);
 				}
 
 			} else {
@@ -1427,7 +1596,7 @@ void TaskDispGameOver(void* pdata) {
 
 		// disp losing message
 		VGA_text(30, 20, "The Minotaur got ya...");
-		VGA_text(38, 22, ">:0");
+		VGA_text(38, 22, ">:(");
 
 		// display total time elapsed
 		char tot_time_MMSS_msg[VGA_TEXT_MAX_SIZE];
