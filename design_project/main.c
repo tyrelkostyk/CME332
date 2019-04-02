@@ -8,6 +8,12 @@
 #define BYTE_SIZE							8             // Byte size, in bits (for offsetting HEX display inputs)
 #define LCD_SIZE							40
 
+// difficulty settings (determine base time limit for each step, in seconds)
+#define EASY_REM_STEP_TIME	45
+#define CASL_REM_STEP_TIME	30
+#define HARD_REM_STEP_TIME	15
+#define EXPT_REM_STEP_TIME	9
+
 #define KEY0									0x01
 #define KEY1									0x02
 #define KEY2									0x04
@@ -240,7 +246,7 @@ const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"You hear heavy breathing North of you, but see nothing in the corridor...",		// Loc 48
 	"The Labyrinth bends 90 degrees.",		// Loc 49
 	"It's a dead end, with nothing but dirt and mold.",		// Loc 50
-	"This hallway stinks. It continues North & South",		// Loc 51
+	"This hallway stinks. It continues North & South.",		// Loc 51
 	"You come across a heaping pile of rotten bones... some of them look fresh...",		// Loc 52
 	"The labyrinth opens to the North, and curves around a corner to the South.",		// Loc 53
 	"The corridor continues.",		// Loc 54
@@ -974,7 +980,7 @@ void TaskStartScreen(void* pdata) {
 		location = 0; // TODO: change back
 		step_count = 0;
 		time_250ms = 0;
-    step_time_rem_SS = 30;		// TODO: change back
+    step_time_rem_SS = CASL_REM_STEP_TIME;
 		max_step_time_rem = step_time_rem_SS;
     tot_time_rem_SS = 59;
     tot_time_rem_MM = 9;
