@@ -7,6 +7,8 @@
 #define KEY_ptr								(((volatile unsigned long *)0xFF200050))		// Mem Addr for KEY3-0 Pushbuttons
 #define BYTE_SIZE							8             // Byte size, in bits (for offsetting HEX display inputs)
 #define LCD_SIZE							40
+#define MAX_LOCATIONS 				100
+#define VGA_TEXT_MAX_SIZE			200
 
 // difficulty settings (determine base time limit for each step, in seconds)
 #define EASY_REM_STEP_TIME	45
@@ -19,9 +21,7 @@
 #define KEY2									0x04
 #define KEY3									0x08
 
-#define MAX_LOCATIONS 				100
-#define VGA_TEXT_MAX_SIZE			200
-
+// Definitions for locations of text written to screen
 #define MSG_BASE_X						1
 #define MSG_BASE_Y						5
 
