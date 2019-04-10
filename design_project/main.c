@@ -4,26 +4,26 @@
 
 /* Definition of Global Vars and Mem-Mapped Pointers */
 
-#define KEY_ptr								(((volatile unsigned long *)0xFF200050))		// Mem Addr for KEY3-0 Pushbuttons
-#define BYTE_SIZE							8             // Byte size, in bits (for offsetting HEX display inputs)
-#define LCD_SIZE							40
+#define KEY_ptr						(((volatile unsigned long *)0xFF200050))		// Mem Addr for KEY3-0 Pushbuttons
+#define BYTE_SIZE					8             // Byte size, in bits (for offsetting HEX display inputs)
+#define LCD_SIZE					40
 #define MAX_LOCATIONS 				100
 #define VGA_TEXT_MAX_SIZE			200
 
 // difficulty settings (determine base time limit for each step, in seconds)
-#define EASY_REM_STEP_TIME	45
-#define CASL_REM_STEP_TIME	30
-#define HARD_REM_STEP_TIME	15
-#define EXPT_REM_STEP_TIME	9
+#define EASY_REM_STEP_TIME			45
+#define CASL_REM_STEP_TIME			30
+#define HARD_REM_STEP_TIME			15
+#define EXPT_REM_STEP_TIME			9
 
-#define KEY0									0x01
-#define KEY1									0x02
-#define KEY2									0x04
-#define KEY3									0x08
+#define KEY0						0x01
+#define KEY1						0x02
+#define KEY2						0x04
+#define KEY3						0x08
 
 // Definitions for locations of text written to screen
-#define MSG_BASE_X						1
-#define MSG_BASE_Y						5
+#define MSG_BASE_X					1
+#define MSG_BASE_Y					5
 
 #define QUESTION_BASE_X				1
 #define QUESTION_BASE_Y				20
@@ -66,11 +66,11 @@ INT8U 		err;
 OS_FLAG_GRP *GameStatus;
 OS_FLAGS value;
 
-#define GAME_ACTIVE 				0x01  // 0 = IDLE, 1 = ACTIVE
-#define GAME_NEW_LOCATION		0x02  // 0 = No new location to render, 1 = New location to render (within ACTIVE state)
-#define GAME_FINISHED				0x04  // 0 = GAME ONGOING (or IDLE), 1 = GAME COMPLETED
-#define GAME_LOST						0x08	// 0 = GAME ONGONG (or IDLE), 1 = GAME LOST
-#define GAME_RESET					0x10  // 0 = GAME ONGOING (or IDLE), 1 = GAME RESET
+#define GAME_ACTIVE 				0x01	// 0 = IDLE, 1 = ACTIVE
+#define GAME_NEW_LOCATION			0x02	// 0 = No new location to render, 1 = New location to render (within ACTIVE state)
+#define GAME_FINISHED				0x04	// 0 = GAME ONGOING (or IDLE), 1 = GAME COMPLETED
+#define GAME_LOST					0x08	// 0 = GAME ONGONG (or IDLE), 1 = GAME LOST
+#define GAME_RESET					0x10	// 0 = GAME ONGOING (or IDLE), 1 = GAME RESET
 
 
 /* Definition of Task Stacks */
@@ -89,10 +89,10 @@ OS_STK    TaskDispGameOver_stk[TASK_STACKSIZE];
 
 #define TASKMAKECHOICE_PRIORITY				5
 #define TASKSTOPWATCH_PRIORITY				6
-#define TASKDISPNEWLOCATION_PRIORITY	10
-#define TASKDISPREMTIME_PRIORITY    	11
-#define TASKDISPRESULTS_PRIORITY    	12
-#define TASKDISPGAMEOVER_PRIORITY    	13
+#define TASKDISPNEWLOCATION_PRIORITY		10
+#define TASKDISPREMTIME_PRIORITY    		11
+#define TASKDISPRESULTS_PRIORITY    		12
+#define TASKDISPGAMEOVER_PRIORITY    		13
 #define TASKSTARTSCREEN_PRIORITY			14
 
 
@@ -107,90 +107,90 @@ const char LUT_location_permissions [MAX_LOCATIONS] = {
   KEY0,                 		// Loc 4: East
   KEY0,                 		// Loc 5: East
   KEY0+KEY1,            		// Loc 6: East, South (after first time)
-	KEY0+KEY3,								// Loc 7: East, West
-	KEY1+KEY3,								// Loc 8: West, South
-	0,												// Loc 9: Not a valid spot
-	KEY1,											// Loc 10: South
-	KEY0+KEY1,								// Loc 11: East, South
-	KEY1+KEY3,								// Loc 12: South, West
-	KEY0+KEY1,								// Loc 13: East, South
-	KEY1+KEY3,								// Loc 14: South, West
-	KEY1+KEY2,								// Loc 15: North, South
-	0,												// Loc 16: Not a valid spot
-	KEY1+KEY2,								// Loc 17: North, South
-	KEY0+KEY1,								// Loc 18: East, South
-	KEY0+KEY1+KEY2+KEY3,			// Loc 19: All directions
-	KEY2+KEY3,								// Loc 20: North, West
-	KEY0+KEY2,								// Loc 21: North, East
-	KEY2+KEY3,								// Loc 22: North, West
-	KEY0+KEY2,								// Loc 23: North, East
-	KEY0+KEY1+KEY2+KEY3,			// Loc 24: All directions
-	KEY0+KEY3,								// Loc 25: East, West
-	KEY2+KEY3,								// Loc 26: North, West
-	KEY1+KEY2,								// Loc 27: North, South
-	KEY0+KEY2,								// Loc 28: North, East
-	KEY0+KEY3,								// Loc 29: East, West
-	KEY0+KEY3,								// Loc 30: East, West
-	KEY0+KEY3,								// Loc 31: East, West
-	KEY3,											// Loc 32: West (after investigating)
-	KEY1+KEY2,								// Loc 33: North, South
-	0,												// Loc 34: Not a valid spot
-	KEY1,											// Loc 35: South (after getting sword)
-	KEY1+KEY2,								// Loc 36: North, South
-	KEY0+KEY1,								// Loc 37: East, South
-	KEY0+KEY3,								// Loc 38: East, West
-	KEY0+KEY3,								// Loc 39: East, West (unless running from Minotaur)
-	KEY0+KEY3,								// Loc 40: East, West (only after Minotaur leaves & player investigates)
-	KEY0,											// Loc 41: East
-	KEY0+KEY1+KEY2+KEY3,			// Loc 42: All directions
-	KEY0+KEY3,								// Loc 43: East, West
-	KEY1+KEY2+KEY3,						// Loc 44: North, South, West
-	KEY1+KEY2,								// Loc 45: North, South
-	KEY0+KEY1+KEY2,						// Loc 46: North, East, South
-	KEY0+KEY3,								// Loc 47: East, West
-	KEY0+KEY3,								// Loc 48: East, West
-	KEY1+KEY3,								// Loc 49: South, West
-	KEY1,											// Loc 50: South (unless taking secret Minotaur tunnel)
-	KEY1+KEY2,								// Loc 51: North, South
-	KEY1,											// Loc 52: South
-	KEY1+KEY2,								// Loc 53: North, South
-	KEY1+KEY2,								// Loc 54: North, South
-	KEY2,											// Loc 55: North
-	0,												// Loc 56: Not a valid spot
-	0,												// Loc 57: Not a valid spot
-	KEY1+KEY2,								// Loc 58: North, South
-	KEY1+KEY2,								// Loc 59: North, South
-	KEY1+KEY2,								// Loc 60: North, South
-	KEY0+KEY2,								// Loc 61: North, East
-	KEY2+KEY3,								// Loc 62: North, West
-	KEY0+KEY2,								// Loc 63: North, East
-	KEY0+KEY3,								// Loc 64: East, West
-	KEY0+KEY3,								// Loc 65: East, West
-	KEY0+KEY3,								// Loc 66: East, West
-	KEY0+KEY2+KEY3,						// Loc 67: North, East, West
-	KEY0+KEY1+KEY2+KEY3,			// Loc 68: All directions
-	KEY0+KEY2+KEY3,						// Loc 69: North, East, West
-	KEY0+KEY3,								// Loc 70: East, West
-	KEY1+KEY3,								// Loc 71: South, West
-	KEY0,											// Loc 72: East (unless Key has been retrieved)
-	KEY0+KEY3,								// Loc 73: East, West
-	KEY0+KEY3,								// Loc 74: East, West
-	KEY0+KEY3,								// Loc 75: East, West
-	KEY0+KEY3,								// Loc 76: East, West
-	KEY0+KEY2+KEY3,						// Loc 77: North, East, West
-	KEY3,											// Loc 78: West
-	0,												// Loc 79: Not a valid spot
-	KEY2,											// Loc 80: North
+	KEY0+KEY3,					// Loc 7: East, West
+	KEY1+KEY3,					// Loc 8: West, South
+	0,							// Loc 9: Not a valid spot
+	KEY1,						// Loc 10: South
+	KEY0+KEY1,					// Loc 11: East, South
+	KEY1+KEY3,					// Loc 12: South, West
+	KEY0+KEY1,					// Loc 13: East, South
+	KEY1+KEY3,					// Loc 14: South, West
+	KEY1+KEY2,					// Loc 15: North, South
+	0,							// Loc 16: Not a valid spot
+	KEY1+KEY2,					// Loc 17: North, South
+	KEY0+KEY1,					// Loc 18: East, South
+	KEY0+KEY1+KEY2+KEY3,		// Loc 19: All directions
+	KEY2+KEY3,					// Loc 20: North, West
+	KEY0+KEY2,					// Loc 21: North, East
+	KEY2+KEY3,					// Loc 22: North, West
+	KEY0+KEY2,					// Loc 23: North, East
+	KEY0+KEY1+KEY2+KEY3,		// Loc 24: All directions
+	KEY0+KEY3,					// Loc 25: East, West
+	KEY2+KEY3,					// Loc 26: North, West
+	KEY1+KEY2,					// Loc 27: North, South
+	KEY0+KEY2,					// Loc 28: North, East
+	KEY0+KEY3,					// Loc 29: East, West
+	KEY0+KEY3,					// Loc 30: East, West
+	KEY0+KEY3,					// Loc 31: East, West
+	KEY3,						// Loc 32: West (after investigating)
+	KEY1+KEY2,					// Loc 33: North, South
+	0,							// Loc 34: Not a valid spot
+	KEY1,						// Loc 35: South (after getting sword)
+	KEY1+KEY2,					// Loc 36: North, South
+	KEY0+KEY1,					// Loc 37: East, South
+	KEY0+KEY3,					// Loc 38: East, West
+	KEY0+KEY3,					// Loc 39: East, West (unless running from Minotaur)
+	KEY0+KEY3,					// Loc 40: East, West (only after Minotaur leaves & player investigates)
+	KEY0,						// Loc 41: East
+	KEY0+KEY1+KEY2+KEY3,		// Loc 42: All directions
+	KEY0+KEY3,					// Loc 43: East, West
+	KEY1+KEY2+KEY3,				// Loc 44: North, South, West
+	KEY1+KEY2,					// Loc 45: North, South
+	KEY0+KEY1+KEY2,				// Loc 46: North, East, South
+	KEY0+KEY3,					// Loc 47: East, West
+	KEY0+KEY3,					// Loc 48: East, West
+	KEY1+KEY3,					// Loc 49: South, West
+	KEY1,						// Loc 50: South (unless taking secret Minotaur tunnel)
+	KEY1+KEY2,					// Loc 51: North, South
+	KEY1,						// Loc 52: South
+	KEY1+KEY2,					// Loc 53: North, South
+	KEY1+KEY2,					// Loc 54: North, South
+	KEY2,						// Loc 55: North
+	0,							// Loc 56: Not a valid spot
+	0,							// Loc 57: Not a valid spot
+	KEY1+KEY2,					// Loc 58: North, South
+	KEY1+KEY2,					// Loc 59: North, South
+	KEY1+KEY2,					// Loc 60: North, South
+	KEY0+KEY2,					// Loc 61: North, East
+	KEY2+KEY3,					// Loc 62: North, West
+	KEY0+KEY2,					// Loc 63: North, East
+	KEY0+KEY3,					// Loc 64: East, West
+	KEY0+KEY3,					// Loc 65: East, West
+	KEY0+KEY3,					// Loc 66: East, West
+	KEY0+KEY2+KEY3,				// Loc 67: North, East, West
+	KEY0+KEY1+KEY2+KEY3,		// Loc 68: All directions
+	KEY0+KEY2+KEY3,				// Loc 69: North, East, West
+	KEY0+KEY3,					// Loc 70: East, West
+	KEY1+KEY3,					// Loc 71: South, West
+	KEY0,						// Loc 72: East (unless Key has been retrieved)
+	KEY0+KEY3,					// Loc 73: East, West
+	KEY0+KEY3,					// Loc 74: East, West
+	KEY0+KEY3,					// Loc 75: East, West
+	KEY0+KEY3,					// Loc 76: East, West
+	KEY0+KEY2+KEY3,				// Loc 77: North, East, West
+	KEY3,						// Loc 78: West
+	0,							// Loc 79: Not a valid spot
+	KEY2,						// Loc 80: North
 			// ACTION SPOTS
-	KEY0+KEY1,								// 81; Action spot for Loc 6 (first time only): East, South
-	KEY1+KEY2,								// 82; 1st Action spot for Loc 35 (first time only): North (pick up), South (leave)
-	KEY1,											// 83; 2nd Action spot for Loc 35 (after pick up only): South (leave)
-	KEY2+KEY3,								// 84; 1st Action spot for Loc 40 (first time only): North (fight), west (run)
-	KEY0,											// 85; 2nd Action spot for Loc 40 (fight & win): East (grab key & leave)
-	KEY0,											// 86; 3rd Action spot for Loc 40 (run & return): East (grab key & leave)
-	KEY3,											// 87; Action spot for Loc 39 (after running only, once): West (keep running!)
-	KEY1,											// 88; Action spot for Loc 50 (only after fighting & taking secret exit): South
-	KEY1,											// 89; Action spot for Loc 72 (Only after getting key): South (to win!)
+	KEY0+KEY1,					// 81; Action spot for Loc 6 (first time only): East, South
+	KEY1+KEY2,					// 82; 1st Action spot for Loc 35 (first time only): North (pick up), South (leave)
+	KEY1,						// 83; 2nd Action spot for Loc 35 (after pick up only): South (leave)
+	KEY2+KEY3,					// 84; 1st Action spot for Loc 40 (first time only): North (fight), west (run)
+	KEY0,						// 85; 2nd Action spot for Loc 40 (fight & win): East (grab key & leave)
+	KEY0,						// 86; 3rd Action spot for Loc 40 (run & return): East (grab key & leave)
+	KEY3,						// 87; Action spot for Loc 39 (after running only, once): West (keep running!)
+	KEY1,						// 88; Action spot for Loc 50 (only after fighting & taking secret exit): South
+	KEY1,						// 89; Action spot for Loc 72 (Only after getting key): South (to win!)
 };
 
 // lut for what message to display at each location
@@ -291,85 +291,85 @@ const char LUT_location_msg [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 // lut for the main question to ask at each location
 const char LUT_location_question [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
   "You fumble around in the dark and find a compass, a candle, and                some matchsticks. Will you light the canlde & begin your journey?",  // Loc 0: Start screen
-	"Continue forward?",  // Loc 1
-	"Continue forward?",  // Loc 2
-	"Continue forward?",  // Loc 3
-	"Continue forward?",  // Loc 4
+	"Continue forward?",  				// Loc 1
+	"Continue forward?",  				// Loc 2
+	"Continue forward?", 				 // Loc 3
+	"Continue forward?", 				 // Loc 4
 	"Unlatch the door and continue forward?",  // Loc 5
-	"Continue forward?",  // Loc 6
-	"Continue forward?",  // Loc 7
-	"Which direction will you go?",	 // Loc 8
+	"Continue forward?",  				// Loc 6
+	"Continue forward?",  				// Loc 7
+	"Which direction will you go?",	 	// Loc 8
 	" ",								// Loc 9 (invalid location)
 	"Go back to exploring the Labyrinth?",		// Loc 10
 	"Which direction will you go?",		// Loc 11
 	"Which direction will you go?",		// Loc 12
 	"Which direction will you go?",		// Loc 13
 	"Continue along the corridor? Or turn back?",		// Loc 14
-	"North or South?",		// Loc 15
+	"North or South?",					// Loc 15
 	" ",								// Loc 16 (invalid location)
 	"Should take note of that... which way now?",		// Loc 17
-	"Which way?",		// Loc 18
+	"Which way?",						// Loc 18
 	"Which direction will you go?",		// Loc 19
-	"North or West?",		// Loc 20
-	"North or East?",		// Loc 21
-	"Which way?",		// Loc 22
-	"Go into the corridor?",		// Loc 23
-	"Which direction?",		// Loc 24
-	"East or West?",		// Loc 25
+	"North or West?",					// Loc 20
+	"North or East?",					// Loc 21
+	"Which way?",						// Loc 22
+	"Go into the corridor?",			// Loc 23
+	"Which direction?",					// Loc 24
+	"East or West?",					// Loc 25
 	"Go North around the Pillar?",		// Loc 26
 	"Go South into the corridor? Or North?",		// Loc 27
 	"Go East into the dark, stinky hallway? Or nah?",		// Loc 28
 	"Continue through the corridor?",		// Loc 29
-	"East or West?",		// Loc 30
+	"East or West?",					// Loc 30
 	"Continue East to the end of the corridor? Or exit to the West?",		// Loc 31
 	"Leave the pile of shit behind?",		// Loc 32
-	"North? Or South?",		// Loc 33
+	"North? Or South?",					// Loc 33
 	" ",								// Loc 34 (invalid location)
-	"Leave the corpse?",		// Loc 35
-	"North or South?",		// Loc 36
-	"East, or South?",		// Loc 37
+	"Leave the corpse?",				// Loc 35
+	"North or South?",					// Loc 36
+	"East, or South?",					// Loc 37
 	"Continue East, down the hallway? Or go back West?",		// Loc 38
 	"East into the Den? Or West?",		// Loc 39
 	"Crawl through Secret Tunnel? Or go back West?",		// Loc 40
-	"Leave dead-end?",		// Loc 41
-	"Which way?",		// Loc 42
-	"East or West?",		// Loc 43
+	"Leave dead-end?",					// Loc 41
+	"Which way?",						// Loc 42
+	"East or West?",					// Loc 43
 	"Investigate the body? Or go another direction?",		// Loc 44
 	"Continue along the corridor?",		// Loc 45
-	"North, East, or South?",		// Loc 46
-	"Continue?",		// Loc 47
+	"North, East, or South?",			// Loc 46
+	"Continue?",						// Loc 47
 	"East around the corner, or West down the corridor?",		// Loc 48
-	"South, or West?",		// Loc 49
-	"Leave dead-end?",		// Loc 50
-	"Continue?",		// Loc 51
-	"Leave bones behind?",		// Loc 52
-	"Which way?",		// Loc 53
+	"South, or West?",					// Loc 49
+	"Leave dead-end?",					// Loc 50
+	"Continue?",						// Loc 51
+	"Leave bones behind?",				// Loc 52
+	"Which way?",						// Loc 53
 	"North, down the endless hallway? Or South to the corner?",		// Loc 54
-	"Go North?",		// Loc 55
+	"Go North?",						// Loc 55
 	" ",								// Loc 56 (invalid location)
 	" ",								// Loc 57 (invalid location)
 	"North around corner? Or South into the open area?",		// Loc 58
 	"North to dead-end? Or South?",		// Loc 59
-	"Which way?",		// Loc 60
+	"Which way?",						// Loc 60
 	"Examine source of smell to the North?",		// Loc 61
-	"North, or West?",		// Loc 62
+	"North, or West?",					// Loc 62
 	"North hallway or East hallway?",		// Loc 63
-	"East or West?",		// Loc 64
-	"Continue?",		// Loc 65
-	"East or West?",		// Loc 66
-	"Which way?",		// Loc 67
+	"East or West?",					// Loc 64
+	"Continue?",						// Loc 65
+	"East or West?",					// Loc 66
+	"Which way?",						// Loc 67
 	"Enter corridor to the South? Or go another direction?",		// Loc 68
 	"North to where you began? Or East / West?",		// Loc 69
-	"East or West?",		// Loc 70
+	"East or West?",					// Loc 70
 	"Return West? Or examine cracks in the wall?",		// Loc 71
 	"Return East to go find key?",		// Loc 72
 	"East along corridor? Or West towards door?",		// Loc 73
 	"Continue East? Or West towards light source?",		// Loc 74
-	"East or West?",		// Loc 75
-	"East or West?",		// Loc 76
+	"East or West?",					// Loc 75
+	"East or West?",					// Loc 76
 	"North to exit corridor? Or another direction?",		// Loc 77
-	"Leave dead-end?",		// Loc 78
-	" ",		// Loc 79 (invalid location)
+	"Leave dead-end?",					// Loc 78
+	" ",								// Loc 79 (invalid location)
 	"Stop examining cracks in wall?",		// Loc 80
 	// Action Locations
 	"You don't seem to have an option of going back... which way will you go now?",		// Loc 81
@@ -378,7 +378,7 @@ const char LUT_location_question [MAX_LOCATIONS][VGA_TEXT_MAX_SIZE] = {
 	"Will you fight, and risk death? Or run away?",		// Loc 84
 	"Take key and escape through secret tunnel?",		// Loc 85
 	"Take key and escape through secret tunnel?",		// Loc 86
-	"KEEP RUNNING!",		// Loc 87
+	"KEEP RUNNING!",						// Loc 87
 	"Continue South towards the exit?",		// Loc 88
 	"Insert Key and escape the Labyrinth??",		// Loc 89
 };
